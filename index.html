@@ -4,57 +4,55 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#ff6f91">
-  <meta name="description" content="Suria Tools：免费、快速、隐私友好的在线工具箱">
+  <meta name="description" content="Suria Tools：免费、快速、隐私友好的在线工具箱，支持图片、文本、开发、时间和设计工具。">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta property="og:title" content="Suria Tools">
+  <meta property="og:description" content="免费、快速、隐私友好的在线工具箱">
+  <meta property="og:type" content="website">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="workspace.css">
+  <link rel="stylesheet" href="final.css">
   <title>Suria Tools</title>
 </head>
 <body>
   <aside id="sidebar" class="sidebar">
-    <div class="brand"><span class="logo">S</span><div><b>Suria Tools</b><small>本地处理 · 免费使用</small></div></div>
+    <button class="brand" data-home><span class="logo">S</span><span><b>Suria Tools</b><small>本地处理 · 免费使用</small></span></button>
     <nav id="nav"></nav>
-    <button id="themeBtn" class="plain">🌙 深色模式</button>
+    <div class="sidebar-foot"><button id="themeBtn" class="ghost">🌙 深色模式</button><button id="resetBtn" class="ghost">↺ 重置本地设置</button></div>
   </aside>
   <main>
     <header class="topbar">
-      <button id="menuBtn" class="menu">☰</button>
-      <div class="search"><input id="search" placeholder="搜索工具，支持中英文关键词…"><kbd>/</kbd></div>
-      <button id="installBtn" class="plain hidden">安装应用</button>
+      <button id="menuBtn" class="icon-button">☰</button>
+      <div class="search"><span>⌕</span><input id="search" autocomplete="off" placeholder="搜索工具、用途或英文名称…"><kbd>/</kbd></div>
+      <button id="installBtn" class="ghost hidden">安装应用</button>
     </header>
-    <section id="hero" class="hero">
-      <div><span class="eyebrow">SURIA TOOLS V2</span><h1>干净、快速、真正好用的在线工具箱</h1><p>图片、文字和数据默认仅在浏览器本地处理，不上传服务器。</p></div>
-      <div class="stats"><span><b id="count">0</b> 个工具</span><span><b>0</b> 登录要求</span><span><b>100%</b> 公开免费</span></div>
-    </section>
-    <section id="home" class="content">
-      <div class="section-title"><h2>收藏工具</h2></div><div id="favorites" class="grid"></div>
-      <div class="section-title"><h2>最近使用</h2></div><div id="recent" class="grid compact"></div>
-      <div class="section-title"><h2>全部工具</h2><span id="resultCount"></span></div><div id="sections"></div>
+    <section id="homeView">
+      <section class="hero">
+        <div><span class="eyebrow">SURIA TOOLS FINAL</span><h1>一个真正属于你的在线工具箱</h1><p>无需账号。收藏、常用工具和工作台仅保存在当前浏览器；图片和文本优先在本地处理。</p></div>
+        <div class="stats"><span><b id="toolCount">0</b> 个工具</span><span><b>0</b> 登录要求</span><span><b>100%</b> 公开免费</span></div>
+      </section>
+      <div class="content">
+        <section id="workspaceSection"><div class="section-head"><div><h2>我的工作台</h2><p>将多个工具组合成自己的处理流程</p></div><button id="newWorkspace" class="secondary">＋ 新建</button></div><div id="workspaceList" class="workspace-grid"></div></section>
+        <section id="commonSection"><div class="section-head"><div><h2>我的常用</h2><p>根据当前浏览器的使用习惯自动排序</p></div></div><div id="common" class="tool-grid compact"></div></section>
+        <section id="recentSection"><div class="section-head"><div><h2>最近使用</h2></div></div><div id="recent" class="tool-grid compact"></div></section>
+        <section id="favoriteSection"><div class="section-head"><div><h2>我的收藏</h2></div></div><div id="favorites" class="tool-grid compact"></div></section>
+        <section><div class="section-head"><div><h2>全部工具</h2><p id="resultText"></p></div></div><div id="allTools"></div></section>
+      </div>
     </section>
     <section id="toolView" class="content hidden">
       <button id="backBtn" class="back">← 返回工具列表</button>
-      <article class="tool-page">
-        <div class="tool-head"><div><span id="toolCat" class="eyebrow"></span><h2 id="toolTitle"></h2><p id="toolDesc"></p></div><button id="favBtn" class="plain">☆ 收藏</button></div>
-        <div id="toolBody"></div>
-      </article>
+      <article class="tool-page"><header class="tool-header"><div><span id="toolCategory" class="eyebrow"></span><h2 id="toolTitle"></h2><p id="toolDescription"></p></div><div class="tool-header-actions"><button id="addWorkspaceBtn" class="ghost">＋ 工作台</button><button id="favoriteBtn" class="ghost">☆ 收藏</button></div></header><div id="toolBody"></div></article>
     </section>
   </main>
+  <div id="overlay" class="overlay hidden"></div>
+  <div id="workspaceModal" class="modal hidden"></div>
   <div id="toast" class="toast"></div>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="app.js"></script>
-  <script src="usage.js"></script>
-  <script src="workspace.js"></script>
-  <script>
-    backBtn.onclick=()=>{history.pushState({},'',location.pathname);route()};
-    let installPrompt;
-    addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;installBtn.classList.remove('hidden')});
-    installBtn.onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;installBtn.classList.add('hidden')};
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script src="final.js"></script>
 </body>
 </html>
