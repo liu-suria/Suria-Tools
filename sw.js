@@ -1,4 +1,4 @@
-const CACHE='suria-tools-final-20260801-5';
+const CACHE='suria-tools-final-20260801-6';
 const ASSETS=['./','index.html','final.css','polish.css','bootstrap.js','final.js','tools-extra.js','polish.js','stability.js','manifest.webmanifest','icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
