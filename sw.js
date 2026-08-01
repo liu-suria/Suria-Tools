@@ -1,5 +1,5 @@
-const CACHE='suria-tools-final-20260801-2';
-const ASSETS=['./','index.html','final.css','final.js','tools-extra.js','manifest.webmanifest','icon.svg'];
+const CACHE='suria-tools-final-20260801-3';
+const ASSETS=['./','index.html','final.css','polish.css','final.js','tools-extra.js','polish.js','manifest.webmanifest','icon.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
