@@ -1,1 +1,1 @@
-export { default } from 'https://cdn.jsdelivr.net/npm/@jsquash/jpeg@1.6.0/encode.js';
+export { default } from 'https://esm.sh/@jsquash/jpeg@1.6.0/encode.js';
