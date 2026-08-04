@@ -15,9 +15,9 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" sizes="180x180">
-  <link rel="stylesheet" href="final.css">
-  <link rel="stylesheet" href="polish.css">
-  <link rel="stylesheet" href="enhancements.css">
+  <link rel="stylesheet" href="final.css?v=20260804-3">
+  <link rel="stylesheet" href="polish.css?v=20260804-3">
+  <link rel="stylesheet" href="enhancements.css?v=20260804-3">
   <title>Suria Tools</title>
 </head>
 <body>
@@ -34,11 +34,11 @@
     </header>
     <section id="homeView">
       <div class="content">
-        <section><div class="section-head"><div><h2>全部工具</h2><p id="resultText"></p></div></div><div id="allTools"></div></section>
-        <section id="commonSection"><div class="section-head"><div><h2>我的常用</h2></div></div><div id="common" class="tool-grid compact"></div></section>
-        <section id="recentSection"><div class="section-head"><div><h2>最近使用</h2></div></div><div id="recent" class="tool-grid compact"></div></section>
         <section id="favoriteSection"><div class="section-head"><div><h2>我的收藏</h2></div></div><div id="favorites" class="tool-grid compact"></div></section>
-        <section id="workspaceSection"><div class="section-head"><div><h2>我的工作台</h2></div><button id="newWorkspace" class="secondary">＋ 新建</button></div><div id="workspaceList" class="workspace-grid"></div></section>
+        <section id="recentSection"><div class="section-head"><div><h2>最近使用</h2></div></div><div id="recent" class="tool-grid compact"></div></section>
+        <section id="allToolsSection"><div class="section-head"><div><h2>全部工具</h2><p id="resultText"></p></div></div><div id="allTools"></div></section>
+        <section id="commonSection" class="hidden"><div class="section-head"><div><h2>我的常用</h2></div></div><div id="common" class="tool-grid compact"></div></section>
+        <section id="workspaceSection" class="hidden"><div class="section-head"><div><h2>我的工作台</h2></div><button id="newWorkspace" class="secondary">＋ 新建</button></div><div id="workspaceList" class="workspace-grid"></div></section>
       </div>
     </section>
     <section id="toolView" class="content hidden">
@@ -50,6 +50,6 @@
   <div id="workspaceModal" class="modal hidden"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <noscript><div style="padding:20px;text-align:center">Suria Tools 需要启用 JavaScript 才能运行。</div></noscript>
-  <script src="bootstrap.js"></script>
+  <script src="bootstrap.js?v=20260804-3"></script>
 </body>
 </html>
