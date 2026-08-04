@@ -1,7 +1,7 @@
 name: Refactor and clean static app
 
 on:
-  push:
+  pull_request:
     paths:
       - '.refactor-clean-trigger'
 
@@ -14,53 +14,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
       - name: Consolidate runtime and remove legacy assets
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re, shutil, json
-
-          root=Path('.')
-          index=Path('index.html')
-          html=index.read_text()
-
-          # Stable runtime entry; remove one-time cache cleanup and stale service-worker behavior.
+          index=Path('index.html'); html=index.read_text()
           html=re.sub(r'\s*<script>\s*\(async\(\)=>\{.*?caches\.delete\(key\).*?</script>\s*','\n',html,flags=re.S)
           html=html.replace('image-codec-tools-20260804-1327.js','image-codec-tools.js?v=20260804-2')
           html=html.replace('final.js?v=20260804-1327','final.js?v=20260804-2')
           index.write_text(html)
-
           src=Path('image-codec-tools-20260804-1327.js')
           if src.exists(): Path('image-codec-tools.js').write_text(src.read_text())
-
-          # Remove service-worker registration from core; static EO deployment should always fetch current entry assets.
-          p=Path('final.js')
-          s=p.read_text()
-          s=re.sub(r";?if\('serviceWorker'in navigator\)navigator\.serviceWorker\.register\('sw\.js'\)\.catch\(\(\)=>\{\}\)", '', s)
-          p.write_text(s)
-
-          obsolete_files=[
-            'image-codec-tools-20260804-1327.js','image-jsquash-tools.js','image-target-tools.js',
-            'image-target-runtime-fix.js','image-fixed-target.js','compression-fix.js','sw.js',
-            '.bundle-jsquash-trigger','.github/workflows/bundle-jsquash.yml'
-          ]
-          for name in obsolete_files:
-            path=Path(name)
-            if path.exists(): path.unlink()
-
-          # Bundled browser codecs are the only runtime codec assets needed.
-          old=Path('vendor/jsquash')
-          if old.exists(): shutil.rmtree(old)
-
-          # Remove unreferenced historical image target styles only when no longer loaded.
+          p=Path('final.js'); s=p.read_text(); s=re.sub(r";?if\('serviceWorker'in navigator\)navigator\.serviceWorker\.register\('sw\.js'\)\.catch\(\(\)=>\{\}\)", '', s); p.write_text(s)
+          obsolete=['image-codec-tools-20260804-1327.js','image-jsquash-tools.js','image-target-tools.js','image-target-runtime-fix.js','image-fixed-target.js','compression-fix.js','sw.js','.bundle-jsquash-trigger','.github/workflows/bundle-jsquash.yml']
+          for name in obsolete:
+            q=Path(name)
+            if q.exists(): q.unlink()
+          if Path('vendor/jsquash').exists(): shutil.rmtree('vendor/jsquash')
           loaded=set(re.findall(r'(?:src|href)="([^"?#]+)',html))
-          candidates=['image-target-tools.css']
-          for name in candidates:
-            if name not in loaded and Path(name).exists(): Path(name).unlink()
-
-          # Generate a reproducible runtime manifest and verify every local entry asset exists.
+          if 'image-target-tools.css' not in loaded and Path('image-target-tools.css').exists(): Path('image-target-tools.css').unlink()
           local=[]
           for value in re.findall(r'(?:src|href)="([^"#]+)',html):
             value=value.split('?')[0]
@@ -68,36 +43,23 @@ jobs:
             if value and value not in local: local.append(value)
           missing=[x for x in local if not Path(x).exists()]
           if missing: raise SystemExit('Missing entry assets: '+', '.join(missing))
-
-          manifest={
-            'entry':'index.html',
-            'generated':'2026-08-04',
-            'runtimeAssets':local,
-            'codecs':[
-              'vendor/jsquash-browser/jpeg.js','vendor/jsquash-browser/webp.js',
-              'vendor/jsquash-browser/mozjpeg_enc.wasm','vendor/jsquash-browser/webp_enc.wasm'
-            ],
-            'policy':'All runtime dependencies are repository-local. No CDN runtime imports.'
-          }
+          manifest={'entry':'index.html','generated':'2026-08-04','runtimeAssets':local,'codecs':['vendor/jsquash-browser/jpeg.js','vendor/jsquash-browser/webp.js','vendor/jsquash-browser/mozjpeg_enc.wasm','vendor/jsquash-browser/webp_enc.wasm'],'policy':'All runtime dependencies are repository-local. No CDN runtime imports.'}
           Path('runtime-assets.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
-
-          # Repository audit for future maintenance.
-          files=sorted(str(p) for p in root.rglob('*') if p.is_file() and '.git/' not in str(p))
-          Path('REFACTOR_AUDIT.md').write_text('# Suria Tools 重构审计\n\n- 单一入口：`index.html`\n- 图片编码入口：`image-codec-tools.js`\n- 编码器仅保留：`vendor/jsquash-browser/`\n- 已移除 Service Worker，避免旧脚本长期缓存\n- 运行依赖均为仓库本地资源\n- 启动资源清单：`runtime-assets.json`\n\n## 当前文件\n\n'+''.join(f'- `{f}`\n' for f in files))
+          files=sorted(str(x) for x in Path('.').rglob('*') if x.is_file() and '.git/' not in str(x))
+          Path('REFACTOR_AUDIT.md').write_text('# Suria Tools 重构审计\n\n- 单一入口：`index.html`\n- 图片编码入口：`image-codec-tools.js`\n- 编码器仅保留：`vendor/jsquash-browser/`\n- 已移除 Service Worker\n- 运行依赖均为仓库本地资源\n- 启动资源清单：`runtime-assets.json`\n\n## 当前文件\n\n'+''.join(f'- `{f}`\n' for f in files))
           PY
-
           node --check final.js
           node --check image-codec-tools.js
           node --check tool-experience.js
-          grep -R "vendor/jsquash/webp/encode.js\|vendor/jsquash/jpeg/encode.js\|cdn.jsdelivr.net\|esm.sh\|unpkg.com" --include='*.js' --include='*.html' . && exit 1 || true
+          if grep -R "vendor/jsquash/webp/encode.js\|vendor/jsquash/jpeg/encode.js\|cdn.jsdelivr.net\|esm.sh\|unpkg.com" --include='*.js' --include='*.html' .; then exit 1; fi
           test -f vendor/jsquash-browser/jpeg.js
           test -f vendor/jsquash-browser/webp.js
           test -f vendor/jsquash-browser/mozjpeg_enc.wasm
           test -f vendor/jsquash-browser/webp_enc.wasm
-      - name: Commit refactor
+      - name: Commit refactor to branch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'refactor: consolidate runtime and remove legacy assets'
-          git push origin main
+          git push origin HEAD:${{ github.head_ref }}
