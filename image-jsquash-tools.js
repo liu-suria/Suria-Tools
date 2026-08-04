@@ -18,11 +18,11 @@
 
   async function encoder(type){
     if(type==='image/jpeg'){
-      modules.jpeg ||= import('./vendor/jsquash/jpeg/encode.js').then(module=>module.default);
+      modules.jpeg ||= import('./vendor/jsquash-browser/jpeg.js?v=3').then(module=>module.default);
       return modules.jpeg;
     }
     if(type==='image/webp'){
-      modules.webp ||= import('./vendor/jsquash/webp/encode.js').then(module=>module.default);
+      modules.webp ||= import('./vendor/jsquash-browser/webp.js?v=3').then(module=>module.default);
       return modules.webp;
     }
     return null;
