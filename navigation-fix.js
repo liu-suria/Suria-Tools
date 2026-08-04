@@ -18,6 +18,8 @@
   const menu=()=>document.querySelector('#recentMenu');
   const recentPanel=()=>document.querySelector('#recentMenuPanel');
   const recentButton=()=>document.querySelector('#recentMenuButton');
+  const categoryNames=()=>[...new Set(tools.map(tool=>tool.cat))];
+  const categoryAnchorId=index=>`tool-category-${index}`;
 
   function recentTools(){
     return storage.get('recent',[])
@@ -80,7 +82,7 @@
     document.querySelector('#workspaceSection')?.classList.add('hidden');
     document.querySelector('#addWorkspaceBtn')?.classList.add('hidden');
 
-    // 最近使用属于固定顶部能力，在首页、分类页和工具详情页始终展示。
+    // 最近使用属于固定顶部能力，在首页、分类锚点和工具详情页始终展示。
     menu()?.classList.remove('hidden');
   }
 
@@ -179,6 +181,91 @@
     };
   }
 
+  function markCategoryAnchors(){
+    const names=categoryNames();
+    document.querySelectorAll('#allTools .category').forEach(section=>{
+      const name=section.querySelector('.category-title h3')?.textContent.trim();
+      const index=names.indexOf(name);
+      if(index<0)return;
+      section.id=categoryAnchorId(index);
+      section.dataset.categoryName=name;
+      section.style.scrollMarginTop='calc(var(--suria-topbar-height, 76px) + 18px)';
+    });
+  }
+
+  function setActiveNav(value){
+    document.querySelectorAll('#nav [data-anchor]').forEach(item=>{
+      item.classList.toggle('active',item.dataset.anchor===value);
+    });
+  }
+
+  function returnToAllTools(){
+    history.pushState({},'',location.pathname);
+    const search=document.querySelector('#search');
+    if(search)search.value='';
+    originalShowHome();
+    originalRenderAll('');
+    markCategoryAnchors();
+    syncPageMode();
+  }
+
+  function scrollToCategory(index){
+    returnToAllTools();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const target=document.querySelector(`#${categoryAnchorId(index)}`);
+      target?.scrollIntoView({behavior:'smooth',block:'start'});
+      setActiveNav(`category-${index}`);
+      document.querySelector('#sidebar')?.classList.remove('open');
+    }));
+  }
+
+  function renderAnchorNav(){
+    const nav=document.querySelector('#nav');
+    if(!nav)return;
+
+    nav.innerHTML=[
+      '<button type="button" data-anchor="recent">◷ 最近使用</button>',
+      ...categoryNames().map((name,index)=>`<button type="button" data-anchor="category-${index}">• ${esc(name)}</button>`)
+    ].join('');
+
+    nav.onclick=event=>{
+      const item=event.target.closest('[data-anchor]');
+      if(!item)return;
+
+      const anchor=item.dataset.anchor;
+      if(anchor==='recent'){
+        setActiveNav('recent');
+        openRecentMenu();
+        recentButton()?.focus({preventScroll:true});
+        document.querySelector('#sidebar')?.classList.remove('open');
+        return;
+      }
+
+      const index=Number(anchor.replace('category-',''));
+      if(Number.isInteger(index))scrollToCategory(index);
+    };
+  }
+
+  function updateScrollSpy(){
+    if(document.querySelector('#homeView')?.classList.contains('hidden'))return;
+
+    const topOffset=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--suria-topbar-height'))||76;
+    const sections=[...document.querySelectorAll('#allTools .category[id]')];
+    let current=null;
+
+    for(const section of sections){
+      if(section.getBoundingClientRect().top<=topOffset+56)current=section;
+      else break;
+    }
+
+    if(current){
+      const index=categoryNames().indexOf(current.dataset.categoryName);
+      if(index>=0)setActiveNav(`category-${index}`);
+    }
+  }
+
+  renderNav=renderAnchorNav;
+
   renderSaved=function(){
     originalRenderSaved();
     renderRecentMenu();
@@ -187,6 +274,7 @@
 
   renderAll=function(query=''){
     originalRenderAll(query);
+    markCategoryAnchors();
     syncPageMode();
   };
 
@@ -202,17 +290,17 @@
 
   showHome=function(){
     originalShowHome();
+    markCategoryAnchors();
     syncPageMode();
   };
 
   goHome=function(){
-    history.pushState({},'',location.pathname);
-    const search=document.querySelector('#search');
-    if(search)search.value='';
-    showHome();
-    renderAll('');
+    returnToAllTools();
+    scrollTo({top:0,behavior:'smooth'});
+    setActiveNav('');
   };
 
+  addEventListener('scroll',updateScrollSpy,{passive:true});
   bindRecentMenu();
   bindInstallButton();
   renderRecentMenu();
