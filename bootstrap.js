@@ -14,6 +14,7 @@
     const coreInit=typeof init==='function'?init:null;let started=false;if(coreInit)init=function(){if(started)return;started=true;coreInit()};
     await load('tools-extra.js');
     await load('enhancements.js');
+    await load('compression-fix.js');
     if(typeof init==='function'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()}
     await load('polish.js');
     await load('stability.js');
