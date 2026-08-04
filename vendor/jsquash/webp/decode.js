@@ -10,8 +10,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import mozjpeg_enc from './codec/enc/mozjpeg_enc.js';
-import { defaultOptions } from './meta.js';
+import webp_dec from './codec/dec/webp_dec.js';
 import { initEmscriptenModule } from './utils.js';
 let emscriptenModule;
 export async function init(module, moduleOptionOverrides) {
@@ -22,14 +21,14 @@ export async function init(module, moduleOptionOverrides) {
         actualModule = undefined;
         actualOptions = module;
     }
-    emscriptenModule = initEmscriptenModule(mozjpeg_enc, actualModule, actualOptions);
+    emscriptenModule = initEmscriptenModule(webp_dec, actualModule, actualOptions);
 }
-export default async function encode(data, options = {}) {
+export default async function decode(buffer) {
     if (!emscriptenModule)
         init();
     const module = await emscriptenModule;
-    const _options = { ...defaultOptions, ...options };
-    const resultView = module.encode(data.data, data.width, data.height, _options);
-    // wasm can't run on SharedArrayBuffers, so we hard-cast to ArrayBuffer.
-    return resultView.buffer;
+    const result = module.decode(buffer);
+    if (!result)
+        throw new Error('Decoding error');
+    return result;
 }
