@@ -6,10 +6,8 @@ self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
     await Promise.all(keys.map(key=>caches.delete(key)));
-    await self.registration.unregister();
-    const clients=await self.clients.matchAll({type:'window'});
-    clients.forEach(client=>client.navigate(client.url));
+    await self.clients.claim();
   })());
 });
 
-// 纯静态站点交由浏览器与 EdgeOne 正常缓存，不再拦截请求。
+// 保留空壳 Service Worker 兼容旧安装，不缓存也不拦截任何请求。
