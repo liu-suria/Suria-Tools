@@ -12,7 +12,6 @@
     "navigation-fix.css",
     "tool-experience.css",
     "tool-quality.css",
-    "image-target-tools.css",
     "image-base64.css",
     "qr-enhanced.css",
     "final.js",
@@ -23,16 +22,15 @@
     "category-order.js",
     "recent-section.js",
     "tool-quality.js",
-    "image-codec-tools.js",
     "image-base64.js",
     "qr-enhanced.js",
-    "tool-experience.js"
+    "tool-experience.js",
+    "image-studio-v2.js",
+    "image-target-workbench.js"
   ],
   "codecs": [
     "vendor/jsquash-browser/jpeg.js",
-    "vendor/jsquash-browser/webp.js",
     "vendor/jsquash-browser/mozjpeg_enc.wasm",
-    "vendor/jsquash-browser/webp_enc.wasm",
     "vendor/oxipng/index.js",
     "vendor/oxipng/squoosh_oxipng.js",
     "vendor/oxipng/squoosh_oxipng_bg.wasm"
