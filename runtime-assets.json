@@ -32,7 +32,10 @@
     "vendor/jsquash-browser/jpeg.js",
     "vendor/jsquash-browser/webp.js",
     "vendor/jsquash-browser/mozjpeg_enc.wasm",
-    "vendor/jsquash-browser/webp_enc.wasm"
+    "vendor/jsquash-browser/webp_enc.wasm",
+    "vendor/oxipng/index.js",
+    "vendor/oxipng/squoosh_oxipng.js",
+    "vendor/oxipng/squoosh_oxipng_bg.wasm"
   ],
   "policy": "All runtime dependencies are repository-local. No CDN runtime imports."
 }
