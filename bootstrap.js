@@ -15,6 +15,7 @@
     await load('tools-extra.js');
     await load('enhancements.js');
     await load('compression-fix.js');
+    await load('home-fix.js');
     if(typeof init==='function'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()}
     await load('polish.js');
     await load('stability.js');
