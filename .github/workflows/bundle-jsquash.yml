@@ -31,10 +31,26 @@ jobs:
           test -f vendor/jsquash-browser/webp.js
           test -f vendor/jsquash-browser/mozjpeg_enc.wasm
           test -f vendor/jsquash-browser/webp_enc.wasm
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('image-jsquash-tools.js')
+          s = p.read_text()
+          s = s.replace("./vendor/jsquash/jpeg/encode.js", "./vendor/jsquash-browser/jpeg.js?v=3")
+          s = s.replace("./vendor/jsquash/webp/encode.js", "./vendor/jsquash-browser/webp.js?v=3")
+          p.write_text(s)
+          i = Path('index.html')
+          h = i.read_text()
+          h = h.replace('image-jsquash-tools.js?v=20260804-1', 'image-jsquash-tools.js?v=20260804-3')
+          i.write_text(h)
+          PY
       - name: Commit browser bundle
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add vendor/jsquash-browser
-          git commit -m 'vendor: bundle jSquash browser modules'
-          git push origin main
+          git add vendor/jsquash-browser image-jsquash-tools.js index.html
+          if git diff --cached --quiet; then
+            echo 'No changes'
+          else
+            git commit -m 'fix: use bundled local image codecs'
+            git push origin main
+          fi
