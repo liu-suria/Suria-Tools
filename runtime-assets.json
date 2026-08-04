@@ -26,7 +26,8 @@
     "qr-enhanced.js",
     "tool-experience.js",
     "image-studio-v2.js",
-    "image-target-workbench.js"
+    "image-target-workbench.js",
+    "image-studio-ux-v3.js"
   ],
   "codecs": [
     "vendor/jsquash-browser/jpeg.js",
