@@ -28,86 +28,13 @@
 </head>
 <body>
   <span id="toolCount" hidden aria-hidden="true">0</span>
-
-  <aside id="sidebar" class="sidebar">
-    <div class="sidebar-heading">工具分类</div>
-    <nav id="nav"></nav>
-    <div class="sidebar-foot">
-      <button id="themeBtn" class="ghost">🌙 深色模式</button>
-      <button id="resetBtn" class="ghost">↺ 重置本地设置</button>
-    </div>
-  </aside>
-
+  <aside id="sidebar" class="sidebar"><div class="sidebar-heading">工具分类</div><nav id="nav"></nav><div class="sidebar-foot"><button id="themeBtn" class="ghost">🌙 深色模式</button><button id="resetBtn" class="ghost">↺ 重置本地设置</button></div></aside>
   <main>
-    <header class="topbar">
-      <div class="topbar-left">
-        <button id="menuBtn" class="icon-button" aria-label="打开分类导航">☰</button>
-        <button class="topbar-brand" data-home type="button" aria-label="返回首页">
-          <span class="topbar-logo">S</span>
-          <span class="topbar-brand-copy">
-            <b>Suria Tools</b>
-            <small>轻量实用 · 即开即用</small>
-          </span>
-        </button>
-        <a class="github-link" href="https://github.com/liu-suria/Suria-Tools" target="_blank" rel="noopener noreferrer" aria-label="查看 GitHub 项目" title="GitHub">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.24.77-.55v-2.18c-3.14.68-3.8-1.34-3.8-1.34-.51-1.3-1.25-1.65-1.25-1.65-1.03-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1.01 1.73 2.65 1.23 3.3.94.1-.73.4-1.23.72-1.51-2.51-.29-5.15-1.26-5.15-5.59 0-1.23.44-2.24 1.16-3.03-.12-.28-.5-1.43.11-2.99 0 0 .95-.3 3.11 1.16a10.8 10.8 0 0 1 5.66 0c2.16-1.46 3.1-1.16 3.1-1.16.62 1.56.23 2.71.12 2.99.72.79 1.16 1.8 1.16 3.03 0 4.34-2.65 5.3-5.17 5.58.41.35.77 1.04.77 2.1v3.18c0 .31.2.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg>
-        </a>
-      </div>
-
-      <div class="search">
-        <span>⌕</span>
-        <input id="search" autocomplete="off" aria-label="搜索工具" placeholder="搜索工具、用途或英文名称…">
-        <kbd>/</kbd>
-      </div>
-
-      <div class="topbar-actions">
-        <div id="recentMenu" class="recent-menu">
-          <button id="recentMenuButton" class="recent-menu-button" type="button" aria-haspopup="true" aria-expanded="false">最近使用</button>
-          <div id="recentMenuPanel" class="recent-menu-panel" role="menu"></div>
-        </div>
-        <button id="installBtn" class="install-button" type="button">安装应用</button>
-      </div>
-    </header>
-
-    <section id="homeView">
-      <div class="content">
-        <section id="favoriteSection">
-          <div class="section-head"><div><h2>我的收藏</h2></div></div>
-          <div id="favorites" class="tool-grid compact"></div>
-        </section>
-        <section id="recentSection">
-          <div class="section-head"><div><h2>最近使用</h2></div></div>
-          <div id="recent" class="tool-grid compact"></div>
-        </section>
-        <section id="allToolsSection">
-          <div class="section-head"><div><h2>全部工具</h2><p id="resultText"></p></div></div>
-          <div id="allTools"></div>
-        </section>
-      </div>
-    </section>
-
-    <section id="toolView" class="content hidden">
-      <button id="backBtn" class="back">← 返回工具列表</button>
-      <article class="tool-page">
-        <header class="tool-header">
-          <div><span id="toolCategory" class="eyebrow"></span><h2 id="toolTitle"></h2><p id="toolDescription"></p></div>
-          <div class="tool-header-actions"><button id="favoriteBtn" class="ghost">☆ 收藏</button></div>
-        </header>
-        <div id="toolBody"></div>
-      </article>
-    </section>
+    <header class="topbar"><div class="topbar-left"><button id="menuBtn" class="icon-button" aria-label="打开分类导航">☰</button><button class="topbar-brand" data-home type="button" aria-label="返回首页"><span class="topbar-logo">S</span><span class="topbar-brand-copy"><b>Suria Tools</b><small>轻量实用 · 即开即用</small></span></button><a class="github-link" href="https://github.com/liu-suria/Suria-Tools" target="_blank" rel="noopener noreferrer" aria-label="查看 GitHub 项目" title="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.24.77-.55v-2.18c-3.14.68-3.8-1.34-3.8-1.34-.51-1.3-1.25-1.65-1.25-1.65-1.03-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1.01 1.73 2.65 1.23 3.3.94.1-.73.4-1.23.72-1.51-2.51-.29-5.15-1.26-5.15-5.59 0-1.23.44-2.24 1.16-3.03-.12-.28-.5-1.43.11-2.99 0 0 .95-.3 3.11 1.16a10.8 10.8 0 0 1 5.66 0c2.16-1.46 3.1-1.16 3.1-1.16.62 1.56.23 2.71.12 2.99.72.79 1.16 1.8 1.16 3.03 0 4.34-2.65 5.3-5.17 5.58.41.35.77 1.04.77 2.1v3.18c0 .31.2.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg></a></div><div class="search"><span>⌕</span><input id="search" autocomplete="off" aria-label="搜索工具" placeholder="搜索工具、用途或英文名称…"><kbd>/</kbd></div><div class="topbar-actions"><div id="recentMenu" class="recent-menu"><button id="recentMenuButton" class="recent-menu-button" type="button" aria-haspopup="true" aria-expanded="false">最近使用</button><div id="recentMenuPanel" class="recent-menu-panel" role="menu"></div></div><button id="installBtn" class="install-button" type="button">安装应用</button></div></header>
+    <section id="homeView"><div class="content"><section id="favoriteSection"><div class="section-head"><div><h2>我的收藏</h2></div></div><div id="favorites" class="tool-grid compact"></div></section><section id="recentSection"><div class="section-head"><div><h2>最近使用</h2></div></div><div id="recent" class="tool-grid compact"></div></section><section id="allToolsSection"><div class="section-head"><div><h2>全部工具</h2><p id="resultText"></p></div></div><div id="allTools"></div></section></div></section>
+    <section id="toolView" class="content hidden"><button id="backBtn" class="back">← 返回工具列表</button><article class="tool-page"><header class="tool-header"><div><span id="toolCategory" class="eyebrow"></span><h2 id="toolTitle"></h2><p id="toolDescription"></p></div><div class="tool-header-actions"><button id="favoriteBtn" class="ghost">☆ 收藏</button></div></header><div id="toolBody"></div></article></section>
   </main>
-
-  <div hidden aria-hidden="true">
-    <div id="common"></div>
-    <button id="newWorkspace" type="button"></button>
-    <div id="workspaceList"></div>
-    <button id="addWorkspaceBtn" type="button"></button>
-  </div>
-  <div id="overlay" class="overlay hidden"></div>
-  <div id="workspaceModal" class="modal hidden"></div>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <noscript><div style="padding:20px;text-align:center">Suria Tools 需要启用 JavaScript 才能运行。</div></noscript>
+  <div hidden aria-hidden="true"><div id="common"></div><button id="newWorkspace" type="button"></button><div id="workspaceList"></div><button id="addWorkspaceBtn" type="button"></button></div><div id="overlay" class="overlay hidden"></div><div id="workspaceModal" class="modal hidden"></div><div id="toast" class="toast" role="status" aria-live="polite"></div><noscript><div style="padding:20px;text-align:center">Suria Tools 需要启用 JavaScript 才能运行。</div></noscript>
   <script defer src="final.js?v=20260804-2"></script>
   <script defer src="tools-extra.js"></script>
   <script defer src="enhancements.js"></script>
@@ -118,6 +45,8 @@
   <script defer src="tool-quality.js?v=20260804-1"></script>
   <script defer src="image-codec-tools.js?v=20260804-2"></script>
   <script defer src="image-mainstream-compress.js?v=20260804-1"></script>
+  <script defer src="image-tools-unified.js?v=20260804-1"></script>
+  <script defer src="image-visual-safe.js?v=20260804-1"></script>
   <script defer src="image-base64.js?v=20260804-1"></script>
   <script defer src="qr-enhanced.js?v=20260804-1"></script>
   <script defer src="tool-experience.js?v=20260804-2"></script>
