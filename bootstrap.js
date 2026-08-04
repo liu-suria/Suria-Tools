@@ -1,5 +1,5 @@
 (()=>{
-  const files=['final.js','tools-extra.js','enhancements.js','compression-fix.js','home-fix.js','polish.js','stability.js'];
+  const files=['final.js','tools-extra.js','enhancements.js','compression-fix.js','home-fix.js'];
 
   const load=url=>new Promise(resolve=>{
     const script=document.createElement('script');
@@ -7,7 +7,7 @@
     script.async=false;
     script.onload=()=>resolve(true);
     script.onerror=()=>{
-      console.warn(`可选脚本加载失败：${url}`);
+      console.warn(`脚本加载失败：${url}`);
       resolve(false);
     };
     document.head.appendChild(script);
