@@ -108,22 +108,7 @@
   <div id="workspaceModal" class="modal hidden"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <noscript><div style="padding:20px;text-align:center">Suria Tools 需要启用 JavaScript 才能运行。</div></noscript>
-
-  <script>
-(async()=>{
-  try{
-    if('serviceWorker' in navigator){
-      const regs=await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(reg=>reg.unregister()));
-    }
-    if('caches' in window){
-      const keys=await caches.keys();
-      await Promise.all(keys.map(key=>caches.delete(key)));
-    }
-  }catch{}
-})();
-</script>
-  <script defer src="final.js?v=20260804-1327"></script>
+<script defer src="final.js?v=20260804-2"></script>
   <script defer src="tools-extra.js"></script>
   <script defer src="enhancements.js"></script>
   <script defer src="home-fix.js"></script>
@@ -131,7 +116,7 @@
   <script defer src="category-order.js?v=20260804-2"></script>
   <script defer src="recent-section.js?v=20260804-1"></script>
   <script defer src="tool-quality.js?v=20260804-1"></script>
-  <script defer src="image-codec-tools-20260804-1327.js"></script>
+  <script defer src="image-codec-tools.js?v=20260804-2"></script>
   <script defer src="image-base64.js?v=20260804-1"></script>
   <script defer src="qr-enhanced.js?v=20260804-1"></script>
   <script defer src="tool-experience.js?v=20260804-2"></script>

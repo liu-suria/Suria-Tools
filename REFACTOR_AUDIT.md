@@ -1,0 +1,65 @@
+# Suria Tools 重构审计
+
+- 单一入口：`index.html`
+- 图片编码入口：`image-codec-tools.js`
+- 编码器仅保留：`vendor/jsquash-browser/`
+- 已移除 Service Worker
+- 运行依赖均为仓库本地资源
+- 启动资源清单：`runtime-assets.json`
+
+## 当前文件
+
+- `.github/workflows/refactor-clean.yml`
+- `.github/workflows/vendor-dependencies.yml`
+- `.refactor-clean-trigger`
+- `README.md`
+- `TOOL_DEVELOPMENT.md`
+- `bootstrap.js`
+- `category-order.js`
+- `docs/runtime-dependencies.md`
+- `enhancements.css`
+- `enhancements.js`
+- `final.css`
+- `final.js`
+- `home-fix.js`
+- `icon.svg`
+- `icons/apple-touch-icon.png`
+- `icons/icon-192.png`
+- `icons/icon-512.png`
+- `icons/icon-maskable-512.png`
+- `image-base64.css`
+- `image-base64.js`
+- `image-codec-tools.js`
+- `image-target-tools.css`
+- `index.html`
+- `manifest.webmanifest`
+- `navigation-fix.css`
+- `navigation-fix.js`
+- `polish.css`
+- `polish.js`
+- `qr-enhanced.css`
+- `qr-enhanced.js`
+- `recent-section.js`
+- `robots.txt`
+- `runtime-assets.json`
+- `sitemap.xml`
+- `stability.js`
+- `tool-experience.css`
+- `tool-experience.js`
+- `tool-quality.css`
+- `tool-quality.js`
+- `tools-extra.js`
+- `vendor/README.md`
+- `vendor/js-yaml.min.js`
+- `vendor/jsQR.min.js`
+- `vendor/jsquash-browser/jpeg.js`
+- `vendor/jsquash-browser/mozjpeg_enc.wasm`
+- `vendor/jsquash-browser/webp.js`
+- `vendor/jsquash-browser/webp_enc.wasm`
+- `vendor/jsquash-browser/webp_enc_simd.wasm`
+- `vendor/licenses/js-yaml-MIT.txt`
+- `vendor/licenses/jsQR-Apache-2.0.txt`
+- `vendor/licenses/marked-MIT.txt`
+- `vendor/licenses/qrcode-MIT.txt`
+- `vendor/marked.min.js`
+- `vendor/qrcode.min.js`

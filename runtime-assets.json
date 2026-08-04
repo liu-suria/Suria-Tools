@@ -1,0 +1,38 @@
+{
+  "entry": "index.html",
+  "generated": "2026-08-04",
+  "runtimeAssets": [
+    "manifest.webmanifest",
+    "icon.svg",
+    "icons/icon-192.png",
+    "icons/apple-touch-icon.png",
+    "final.css",
+    "polish.css",
+    "enhancements.css",
+    "navigation-fix.css",
+    "tool-experience.css",
+    "tool-quality.css",
+    "image-target-tools.css",
+    "image-base64.css",
+    "qr-enhanced.css",
+    "final.js",
+    "tools-extra.js",
+    "enhancements.js",
+    "home-fix.js",
+    "navigation-fix.js",
+    "category-order.js",
+    "recent-section.js",
+    "tool-quality.js",
+    "image-codec-tools.js",
+    "image-base64.js",
+    "qr-enhanced.js",
+    "tool-experience.js"
+  ],
+  "codecs": [
+    "vendor/jsquash-browser/jpeg.js",
+    "vendor/jsquash-browser/webp.js",
+    "vendor/jsquash-browser/mozjpeg_enc.wasm",
+    "vendor/jsquash-browser/webp_enc.wasm"
+  ],
+  "policy": "All runtime dependencies are repository-local. No CDN runtime imports."
+}
