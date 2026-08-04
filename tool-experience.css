@@ -1,0 +1,75 @@
+/* Unified tool experience layer */
+.ux-tool-root{display:grid;gap:16px;min-height:260px}
+.ux-tool-root.ux-loading{place-items:center}
+.ux-loading-card{display:flex;align-items:center;gap:12px;min-height:220px;color:var(--muted)}
+.ux-loading-card span{width:24px;height:24px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:ux-spin .8s linear infinite}
+@keyframes ux-spin{to{transform:rotate(360deg)}}
+
+.ux-tool-overview{display:grid;grid-template-columns:52px minmax(0,1fr);gap:14px;align-items:center;padding:16px 18px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,var(--panel),color-mix(in srgb,var(--accent-soft) 45%,var(--panel)))}
+.ux-overview-icon{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--accent-soft);color:var(--accent);font-size:22px;font-weight:900}
+.ux-overview-copy{min-width:0}
+.ux-overview-badges{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.ux-overview-badges span{padding:5px 9px;border-radius:999px;background:var(--soft);color:var(--muted);font-size:11px;font-weight:700}
+.ux-overview-badges span:first-child{background:var(--accent-soft);color:var(--accent)}
+.ux-steps{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0;padding:0;list-style:none}
+.ux-steps li{display:flex;align-items:center;gap:6px;color:var(--text);font-size:13px}
+.ux-steps li:not(:last-child):after{content:'→';margin-left:2px;color:var(--muted)}
+.ux-steps i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--accent);font-size:11px;font-style:normal;font-weight:800}
+
+.ux-tool-toolbar{position:sticky;top:calc(var(--suria-topbar-height,76px) + 12px);z-index:18;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(14px);box-shadow:0 8px 28px rgba(0,0,0,.05)}
+.ux-status{min-width:0;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ux-status.success{color:#17834b}.ux-status.warning{color:#a06300}.ux-status.error{color:var(--danger)}
+.ux-toolbar-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.ux-toolbar-actions button{min-height:34px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-size:12px;cursor:pointer}
+.ux-toolbar-actions button:hover{border-color:rgba(255,111,145,.55);background:var(--accent-soft);color:var(--accent)}
+
+.ux-tool-root>.form-grid,.ux-tool-root>.panel,.ux-tool-root>.image-studio,.ux-tool-root>.drop{margin:0}
+.ux-tool-root .form-grid{align-items:start;gap:16px}
+.ux-tool-root .panel{padding:18px;border-radius:18px;background:var(--panel);box-shadow:none}
+.ux-tool-root .panel:has(.output),.ux-tool-root .panel:has(canvas),.ux-tool-root .panel:has(.preview){background:color-mix(in srgb,var(--soft) 62%,var(--panel))}
+.ux-tool-root label{font-weight:650;color:var(--text)}
+.ux-tool-root input,.ux-tool-root textarea,.ux-tool-root select{background:var(--panel)}
+.ux-tool-root textarea{min-height:230px;line-height:1.65}
+.ux-tool-root .output{padding:14px;border:1px solid var(--line);border-radius:13px;background:var(--panel);min-height:110px}
+.ux-tool-root .output:empty:before{content:'结果将在这里显示';color:var(--muted);opacity:.7}
+.ux-tool-root .actions{padding-top:2px}
+.ux-tool-root .actions button{min-height:42px;font-weight:700}
+.ux-tool-root .actions .primary{box-shadow:0 8px 20px rgba(255,111,145,.22)}
+.ux-tool-root .actions .primary:hover{filter:brightness(.98);transform:translateY(-1px)}
+.ux-input-meta,.ux-file-meta{margin:-2px 2px 10px;color:var(--muted);font-size:11px;text-align:right}
+.ux-file-meta{text-align:left;margin-top:7px}
+.ux-upload-preview{display:grid;grid-template-columns:58px minmax(0,1fr);gap:10px;align-items:center;margin:10px 0;padding:9px;border:1px solid var(--line);border-radius:13px;background:var(--soft)}
+.ux-upload-preview img{width:58px;height:58px;object-fit:cover;border-radius:10px;background:var(--panel)}
+.ux-upload-preview b,.ux-upload-preview small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ux-upload-preview b{font-size:13px}.ux-upload-preview small{margin-top:5px;color:var(--muted);font-size:11px}
+
+.ux-error-card{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:14px;align-items:center;padding:22px;border:1px solid color-mix(in srgb,var(--danger) 34%,var(--line));border-radius:18px;background:color-mix(in srgb,var(--danger) 6%,var(--panel))}
+.ux-error-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:15px;background:color-mix(in srgb,var(--danger) 12%,var(--panel));color:var(--danger);font-size:24px;font-weight:900}
+.ux-error-card h3{margin:0 0 6px}.ux-error-card p{margin:0 0 5px;color:var(--danger)}.ux-error-card small{color:var(--muted)}
+
+.ux-card-category{position:absolute;right:13px;bottom:11px;max-width:82px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:10px;opacity:.72}
+.tool-card:has(.ux-card-category) p{padding-right:55px}
+.tool-card:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 30%,transparent);outline-offset:2px}
+
+.ux-search-clear{position:absolute;right:42px;top:50%;display:none;place-items:center;width:26px;height:26px;transform:translateY(-50%);border:0;border-radius:8px;background:var(--soft);color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+.ux-search-clear.show{display:grid}.ux-search-clear:hover{background:var(--accent-soft);color:var(--accent)}
+
+@media(max-width:840px){
+ .ux-tool-root{gap:12px}
+ .ux-tool-overview{grid-template-columns:42px minmax(0,1fr);padding:13px}
+ .ux-overview-icon{width:42px;height:42px;border-radius:13px;font-size:18px}
+ .ux-steps{gap:5px}.ux-steps li{font-size:11px}.ux-steps li:not(:last-child):after{display:none}
+ .ux-tool-toolbar{position:static;display:block;padding:10px}
+ .ux-status{margin-bottom:9px;white-space:normal}
+ .ux-toolbar-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ux-toolbar-actions button{width:100%}
+ .ux-tool-root .form-grid{grid-template-columns:1fr}
+ .ux-tool-root textarea{min-height:190px}
+ .ux-error-card{grid-template-columns:42px minmax(0,1fr)}
+ .ux-error-card button{grid-column:1/-1}
+ .ux-card-category{display:none}
+ .ux-search-clear{right:10px}
+ .topbar .search kbd{display:none}
+}
+
+@media(prefers-reduced-motion:reduce){.ux-loading-card span{animation:none}}
