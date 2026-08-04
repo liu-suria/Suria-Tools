@@ -1,0 +1,118 @@
+name: Vendor OxiPNG and wire final image studio
+
+on:
+  push:
+    paths:
+      - '.vendor-oxipng-final-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-and-wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Vendor pinned OxiPNG browser codec
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p vendor/oxipng vendor/licenses
+          BASE='https://raw.githubusercontent.com/jamsinclair/jSquash/da47a2be3b302beb5a5ae164a2ab7aa21a041d90'
+          curl -L --fail --retry 3 --silent --show-error "$BASE/packages/oxipng/codec/pkg/squoosh_oxipng.js" -o vendor/oxipng/squoosh_oxipng.js
+          curl -L --fail --retry 3 --silent --show-error "$BASE/packages/oxipng/codec/pkg/squoosh_oxipng_bg.wasm" -o vendor/oxipng/squoosh_oxipng_bg.wasm
+          curl -L --fail --retry 3 --silent --show-error "$BASE/LICENSE" -o vendor/licenses/jsquash-oxipng-Apache-2.0.txt
+          test "$(wc -c < vendor/oxipng/squoosh_oxipng.js)" -gt 3000
+          test "$(wc -c < vendor/oxipng/squoosh_oxipng_bg.wasm)" -gt 50000
+
+          cat > vendor/oxipng/index.js <<'EOF'
+          import init, { optimise } from './squoosh_oxipng.js';
+
+          let ready;
+
+          async function ensureReady() {
+            ready ||= init(new URL('./squoosh_oxipng_bg.wasm', import.meta.url));
+            await ready;
+          }
+
+          export async function optimizePngBuffer(buffer, options = {}) {
+            await ensureReady();
+            const level = Math.max(1, Math.min(6, Number(options.level) || 3));
+            const interlace = Boolean(options.interlace);
+            const optimiseAlpha = Boolean(options.optimiseAlpha);
+            const input = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+            const output = optimise(input, level, interlace, optimiseAlpha);
+            return output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength);
+          }
+          EOF
+
+      - name: Wire OxiPNG into professional image workbench
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('image-studio-v2.js')
+          s = p.read_text()
+
+          if 'let jpegMod,oxipngMod;' not in s:
+              s = s.replace('let jpegMod;', "let jpegMod,oxipngMod;\nasync function oxipngOptimize(input,level=3){oxipngMod ||= import('./vendor/oxipng/index.js?v=20260804-1');const m=await oxipngMod,buf=input instanceof Blob?await input.arrayBuffer():input,out=await m.optimizePngBuffer(buf,{level,interlace:false,optimiseAlpha:false});return new Blob([out],{type:'image/png'})}")
+
+          old_ui = '<label>格式<select id="type"><option value="same">保持原格式</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select></label><label>期望大小'
+          new_ui = '<label>格式<select id="type"><option value="same">保持原格式</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select></label><label>PNG 无损优化<select id="pngMode"><option value="3">OxiPNG 标准无损</option><option value="6">OxiPNG 深度无损（较慢）</option></select></label><label>期望大小'
+          if old_ui not in s:
+              raise SystemExit('workbench format controls not found')
+          s = s.replace(old_ui, new_ui, 1)
+
+          old_encode = "let label='PNG 无损';if(type==='image/jpeg'){const r=await jpegEncode(c,target,q('#lossy').checked);out=r.blob;label=r.label}else out=await toBlob(c,'image/png');const e=type==='image/jpeg'?'jpg':'png';"
+          new_encode = "let label='PNG 无损';if(type==='image/jpeg'){const r=await jpegEncode(c,target,q('#lossy').checked);out=r.blob;label=r.label}else{q('#out').className='pro-preview';q('#out').textContent='正在执行 OxiPNG 无损优化…';const unchanged=file.type==='image/png'&&w===img.naturalWidth&&h===img.naturalHeight&&rot===0&&fx===1&&fy===1&&!q('#wm').checked&&q('#type').value==='same',source=unchanged?file:await toBlob(c,'image/png'),level=Number(q('#pngMode').value)||3,optimized=await oxipngOptimize(source,level);out=optimized.size<source.size?optimized:source;const saved=source.size>out.size?Math.round((1-out.size/source.size)*100):0;label=`OxiPNG ${level>=6?'深度':'标准'}无损${saved?` · 减少 ${saved}%`:' · 已到无损极限'}`}const e=type==='image/jpeg'?'jpg':'png';"
+          if old_encode not in s:
+              raise SystemExit('workbench PNG encode block not found')
+          s = s.replace(old_encode, new_encode, 1)
+
+          p.write_text(s)
+
+          index = Path('index.html')
+          html = index.read_text().replace('image-studio-v2.js?v=20260804-1', 'image-studio-v2.js?v=20260804-2')
+          index.write_text(html)
+
+          headers = Path('_headers')
+          h = headers.read_text() if headers.exists() else ''
+          if '/vendor/oxipng/*.wasm' not in h:
+              h += '\n/vendor/oxipng/*.wasm\n  Content-Type: application/wasm\n  Cache-Control: public, max-age=31536000, immutable\n'
+          headers.write_text(h)
+
+          runtime = Path('runtime-assets.json')
+          if runtime.exists():
+              r = runtime.read_text()
+              marker = '"vendor/jsquash-browser/webp_enc.wasm"'
+              if 'vendor/oxipng/index.js' not in r and marker in r:
+                  r = r.replace(marker, marker + ',\n    "vendor/oxipng/index.js",\n    "vendor/oxipng/squoosh_oxipng.js",\n    "vendor/oxipng/squoosh_oxipng_bg.wasm"')
+              runtime.write_text(r)
+          PY
+
+          node --check image-studio-v2.js
+          node --check vendor/oxipng/index.js
+          node --check vendor/oxipng/squoosh_oxipng.js
+          grep -q 'OxiPNG 标准无损' image-studio-v2.js
+          grep -q 'image-studio-v2.js?v=20260804-2' index.html
+
+      - name: Remove obsolete image experiments and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .vendor-oxipng-final-trigger
+          rm -f .github/workflows/vendor-oxipng-final.yml
+          rm -f .github/workflows/upgrade-jpg-png.yml .github/workflows/upgrade-jpg-png-main.yml
+          rm -f .upgrade-jpg-png-trigger .upgrade-jpg-png-pr-trigger
+          rm -f scripts/upgrade_jpg_png.py
+          rm -f image-visual-safe.js image-tools-final.js image-workbench-pro.js image-mainstream-compress.js image-tools-unified.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: wire local OxiPNG into professional image workbench'
+          git push origin main
