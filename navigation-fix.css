@@ -1,9 +1,11 @@
 :root{--suria-topbar-height:76px}
 
-main{padding-top:var(--suria-topbar-height)}
+/* 两层布局：顶部横跨全页；下方左菜单、右工具 */
+.topbar{position:fixed!important;top:0;left:0!important;right:0;z-index:230;display:grid!important;grid-template-columns:auto minmax(240px,1fr) auto;align-items:center;gap:14px;min-height:var(--suria-topbar-height);padding:12px 24px!important;overflow:visible!important;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.sidebar{top:var(--suria-topbar-height)!important;bottom:0!important;height:auto!important;z-index:120!important}
+main{margin-left:242px!important;padding-top:var(--suria-topbar-height)!important;min-height:100vh}
 .sidebar-heading{padding:6px 9px 17px;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.12em}
 
-.topbar{position:fixed!important;top:0;left:242px;right:0;z-index:130;display:grid!important;grid-template-columns:auto minmax(240px,1fr) auto;align-items:center;gap:14px;min-height:var(--suria-topbar-height);padding:12px 24px!important;overflow:visible;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
 .topbar-left,.topbar-actions{display:flex;align-items:center;gap:9px;min-width:0}
 .topbar-actions{justify-content:flex-end}
 .topbar .search{min-width:0}
@@ -22,9 +24,10 @@ main{padding-top:var(--suria-topbar-height)}
 .install-button,.recent-menu-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);font-weight:650;cursor:pointer;white-space:nowrap;transition:border-color .18s,background .18s,box-shadow .18s}
 .install-button:hover,.recent-menu-button:hover,.recent-menu.open .recent-menu-button,.recent-menu:focus-within .recent-menu-button{border-color:rgba(255,111,145,.55);background:var(--accent-soft);color:var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.08)}
 
-.recent-menu{position:relative;flex:0 0 auto;z-index:140}
+/* 最近使用始终紧贴按钮正下方，不再按视口右侧定位 */
+.recent-menu{position:relative!important;flex:0 0 auto;z-index:240}
 .recent-menu-button span{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--accent);color:#fff;font-size:11px}
-.recent-menu-panel{position:fixed!important;z-index:9999!important;width:min(320px,calc(100vw - 28px));max-height:min(480px,70vh);overflow:auto;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 18px 48px rgba(0,0,0,.2);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-7px);transition:opacity .16s,visibility .16s,transform .16s}
+.recent-menu-panel{position:absolute!important;top:calc(100% + 8px)!important;right:0!important;left:auto!important;z-index:9999!important;width:min(320px,calc(100vw - 28px))!important;max-height:min(480px,70vh);overflow:auto;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 18px 48px rgba(0,0,0,.2);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-7px);transition:opacity .16s,visibility .16s,transform .16s}
 .recent-menu.open .recent-menu-panel,.recent-menu:focus-within .recent-menu-panel{opacity:1;visibility:visible;pointer-events:auto;transform:none}
 .recent-menu-item{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:center;width:100%;padding:10px;border:0;border-radius:12px;background:transparent;color:var(--text);text-align:left;cursor:pointer}
 .recent-menu-item:hover,.recent-menu-item:focus-visible{background:var(--soft);outline:0}
@@ -38,8 +41,9 @@ main{padding-top:var(--suria-topbar-height)}
 
 @media(max-width:840px){
  :root{--suria-topbar-height:118px}
- .sidebar{z-index:220}
- .topbar{left:0;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:46px 48px;gap:8px 10px;padding:8px 12px!important}
+ .topbar{left:0!important;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:46px 48px;gap:8px 10px;padding:8px 12px!important}
+ .sidebar{top:var(--suria-topbar-height)!important;bottom:0!important;z-index:220!important}
+ main{margin-left:0!important;padding-top:var(--suria-topbar-height)!important}
  .topbar-left{grid-column:1;grid-row:1;overflow:hidden}
  .topbar-actions{grid-column:2;grid-row:1;gap:6px}
  .topbar .search{grid-column:1/-1;grid-row:2}
@@ -50,7 +54,7 @@ main{padding-top:var(--suria-topbar-height)}
  .github-link{width:34px;height:34px;border-radius:11px}
  .github-link svg{width:18px;height:18px}
  .recent-menu-button,.install-button{min-height:36px;padding:0 10px;font-size:12px}
- .recent-menu-panel{right:12px!important;left:12px!important;width:auto!important;max-height:60vh}
+ .recent-menu-panel{top:calc(100% + 8px)!important;right:0!important;left:auto!important;width:min(320px,calc(100vw - 24px))!important;max-height:60vh}
  .tool-header{top:var(--suria-topbar-height)!important}
 }
 
