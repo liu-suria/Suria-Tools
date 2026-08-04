@@ -1,0 +1,50 @@
+name: Vendor jSquash locally
+
+on:
+  pull_request:
+    paths:
+      - '.vendor-jsquash-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install fixed codec packages
+        run: |
+          rm -rf vendor/jsquash .vendor-jsquash
+          mkdir -p vendor/jsquash .vendor-jsquash
+          cd .vendor-jsquash
+          npm init -y >/dev/null 2>&1
+          npm install --ignore-scripts --no-audit --no-fund @jsquash/jpeg@1.6.0 @jsquash/webp@1.5.0 wasm-feature-detect@1.8.0
+          cd ..
+          cp -R .vendor-jsquash/node_modules/@jsquash/jpeg vendor/jsquash/jpeg
+          cp -R .vendor-jsquash/node_modules/@jsquash/webp vendor/jsquash/webp
+          mkdir -p vendor/jsquash/node_modules
+          cp -R .vendor-jsquash/node_modules/wasm-feature-detect vendor/jsquash/node_modules/wasm-feature-detect
+          rm -rf .vendor-jsquash
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('vendor/jsquash/webp/encode.js')
+          s = p.read_text()
+          s = s.replace("from 'wasm-feature-detect'", "from '../node_modules/wasm-feature-detect/dist/esm/index.js'")
+          p.write_text(s)
+          PY
+          test -f vendor/jsquash/jpeg/codec/enc/mozjpeg_enc.wasm
+          test -f vendor/jsquash/webp/codec/enc/webp_enc.wasm
+      - name: Commit vendored codecs to PR branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vendor/jsquash
+          git commit -m 'vendor: localize MozJPEG and libwebp WASM codecs'
+          git push origin HEAD:${{ github.head_ref }}
