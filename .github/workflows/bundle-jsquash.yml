@@ -1,0 +1,40 @@
+name: Bundle jSquash browser modules
+
+on:
+  push:
+    paths:
+      - '.bundle-jsquash-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build single-file ESM wrappers
+        run: |
+          rm -rf vendor/jsquash-browser
+          mkdir -p vendor/jsquash-browser
+          npx --yes esbuild@0.25.8 vendor/jsquash/jpeg/encode.js --bundle --format=esm --platform=browser --target=es2020 --outfile=vendor/jsquash-browser/jpeg.js
+          npx --yes esbuild@0.25.8 vendor/jsquash/webp/encode.js --bundle --format=esm --platform=browser --target=es2020 --outfile=vendor/jsquash-browser/webp.js
+          cp vendor/jsquash/jpeg/codec/enc/mozjpeg_enc.wasm vendor/jsquash-browser/mozjpeg_enc.wasm
+          find vendor/jsquash/webp -type f -name 'webp_enc*.wasm' -exec cp {} vendor/jsquash-browser/ \;
+          test -f vendor/jsquash-browser/jpeg.js
+          test -f vendor/jsquash-browser/webp.js
+          test -f vendor/jsquash-browser/mozjpeg_enc.wasm
+          test -f vendor/jsquash-browser/webp_enc.wasm
+      - name: Commit browser bundle
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vendor/jsquash-browser
+          git commit -m 'vendor: bundle jSquash browser modules'
+          git push origin main
