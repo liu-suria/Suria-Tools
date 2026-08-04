@@ -1,0 +1,106 @@
+name: Upgrade JPG PNG compression
+
+on:
+  push:
+    paths:
+      - '.upgrade-jpg-png-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vendor UPNG and patch image tools
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/upngpkg
+          mkdir -p /tmp/upngpkg
+          cd /tmp/upngpkg
+          npm init -y >/dev/null 2>&1
+          npm install @upng/upng-js@2.2.2 >/dev/null 2>&1
+          cd "$GITHUB_WORKSPACE"
+          cp /tmp/upngpkg/node_modules/@upng/upng-js/dist/UPNG.umd.js vendor/upng.min.js
+          cp /tmp/upngpkg/node_modules/@upng/upng-js/LICENSE vendor/licenses/upng-MIT.txt
+          test "$(wc -c < vendor/upng.min.js)" -gt 30000
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('image-codec-tools.js')
+          s=p.read_text()
+
+          s=s.replace("const modules={jpeg:null,webp:null};", "const modules={jpeg:null,webp:null};\n  let upngPromise=null;\n  const loadUPNG=()=>{\n    if(window.UPNG)return Promise.resolve(window.UPNG);\n    if(upngPromise)return upngPromise;\n    upngPromise=new Promise((resolve,reject)=>{\n      const script=document.createElement('script');\n      script.src='./vendor/upng.min.js?v=2.2.2';\n      script.onload=()=>window.UPNG?resolve(window.UPNG):reject(new Error('UPNG 初始化失败'));\n      script.onerror=()=>reject(new Error('UPNG 资源加载失败'));\n      document.head.appendChild(script);\n    });\n    return upngPromise;\n  };" )
+
+          start=s.index('  async function pngEncode(')
+          end=s.index('\n  async function jpegAt(', start)
+          replacement='''  async function pngAt(imageData,colors){
+    const UPNG=await loadUPNG();
+    const rgba=imageData.data.buffer.slice(0);
+    const buffer=UPNG.encode([rgba],imageData.width,imageData.height,colors,0);
+    return new Blob([buffer],{type:'image/png'});
+  }
+
+  async function pngTarget(imageData,target,onProgress){
+    const levels=[0,256,192,128,96,64,48,32,24,16,12,8];
+    let best=null;
+    let smallest=null;
+    for(const colors of levels){
+      const blob=await pngAt(imageData,colors);
+      const label=colors===0?'无损真彩':`${colors} 色量化`;
+      onProgress?.(`PNG ${label} · ${fmt(blob.size)}`);
+      const candidate={blob,type:'image/png',quality:null,colors,codec:colors===0?'UPNG 无损编码':'UPNG 颜色量化',fits:blob.size<=target};
+      if(!smallest||blob.size<smallest.blob.size)smallest=candidate;
+      if(candidate.fits){best=candidate;break;}
+    }
+    return best||smallest;
+  }
+'''
+          s=s[:start]+replacement+s[end:]
+
+          old="""    if(type==='image/png'){\n      const result=await pngEncode(image,width,height);\n      result.fits=result.blob.size<=target;\n      return result;\n    }\n    const data=imageDataFor(image,width,height,type);\n    return type==='image/jpeg'?jpegTarget(data,target,onProgress):webpTarget(data,target,onProgress);"""
+          new="""    const data=imageDataFor(image,width,height,type);\n    if(type==='image/png')return pngTarget(data,target,onProgress);\n    return type==='image/jpeg'?jpegTarget(data,target,onProgress):webpTarget(data,target,onProgress);"""
+          if old not in s: raise SystemExit('encodeTarget block not found')
+          s=s.replace(old,new)
+
+          s=s.replace("<option value=\"image/webp\">WebP（libwebp）</option><option value=\"image/jpeg\">JPG（MozJPEG）</option><option value=\"image/png\">PNG（无损）</option>", "<option value=\"image/jpeg\">JPG（照片推荐）</option><option value=\"image/png\">PNG（透明图 / 截图推荐）</option>")
+          s=s.replace("固定尺寸 · MozJPEG / libwebp WebAssembly 编码 · 达不到目标时输出固定尺寸下的最小结果", "固定尺寸 · JPG 使用 MozJPEG，PNG 使用 UPNG 颜色量化 · 达不到目标时输出固定尺寸下的最小结果")
+          s=s.replace("正在加载 WebAssembly 编码器…", "正在加载本地图片编码器…")
+          s=s.replace("const quality=result.quality===null?'编码器自动控制':`质量 ${Math.round(result.quality)}%`;", "const quality=result.colors?`${result.colors} 色`:result.quality===null?'编码器自动控制':`质量 ${Math.round(result.quality)}%`;")
+
+          # Batch compressor output options: remove WebP and add smart JPG/PNG.
+          s=s.replace('<option value="auto">智能选择更小格式</option><option value="image/jpeg">JPG（MozJPEG）</option><option value="image/webp">WebP（libwebp）</option><option value="image/png">PNG（无损）</option>', '<option value="auto">智能 JPG / PNG</option><option value="image/jpeg">JPG（照片推荐）</option><option value="image/png">PNG（透明图 / 截图推荐）</option>')
+          s=s.replace("const choices=selected==='auto'?(transparency(image)?['image/png','image/webp']:['image/webp','image/jpeg']):[selected];", "const choices=selected==='auto'?(transparency(image)?['image/png']:['image/jpeg','image/png']):[selected];")
+
+          p.write_text(s)
+
+          # Update runtime manifest and index cache key.
+          i=Path('index.html')
+          h=i.read_text().replace('image-codec-tools.js?v=20260804-2','image-codec-tools.js?v=20260804-3')
+          i.write_text(h)
+
+          r=Path('runtime-assets.json')
+          text=r.read_text()
+          if 'vendor/upng.min.js' not in text:
+            text=text.replace('"vendor/jsquash-browser/webp_enc.wasm"','"vendor/jsquash-browser/webp_enc.wasm",\n    "vendor/upng.min.js"')
+          r.write_text(text)
+          PY
+
+          node --check image-codec-tools.js
+          node --check vendor/upng.min.js
+          grep -q "UPNG 颜色量化" image-codec-tools.js
+          grep -q "智能 JPG / PNG" image-codec-tools.js
+      - name: Commit upgrade
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add image-codec-tools.js index.html runtime-assets.json vendor/upng.min.js vendor/licenses/upng-MIT.txt
+          git commit -m 'feat: prioritize JPG and quantized PNG compression'
+          git push origin main
