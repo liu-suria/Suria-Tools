@@ -1,16 +1,15 @@
 name: Vendor jSquash codecs
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - '.github/workflows/vendor-jsquash.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   vendor:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,12 +39,10 @@ jobs:
           cat > vendor/jsquash/README.md <<'EOF'
           # jSquash 本地图片编码器
 
-          固定版本并随站点部署，不依赖 CDN：
+          - @jsquash/jpeg 1.6.0：MozJPEG WebAssembly
+          - @jsquash/webp 1.5.0：libwebp WebAssembly
 
-          - `@jsquash/jpeg` 1.6.0：MozJPEG WebAssembly 编码器
-          - `@jsquash/webp` 1.5.0：libwebp WebAssembly 编码器
-
-          两者均为 Apache-2.0 许可证。WebP 版本关闭 SIMD 自动探测，统一使用兼容编码器，避免浏览器裸模块无法解析 `wasm-feature-detect`。
+          两者均使用 Apache-2.0 许可证并随站点本地部署，不依赖 CDN。
           EOF
       - name: Commit vendored codecs
         run: |
