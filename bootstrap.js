@@ -14,6 +14,15 @@
   });
 
   async function start(){
+    if(!document.getElementById('toolCount')){
+      const counter=document.createElement('span');
+      counter.id='toolCount';
+      counter.hidden=true;
+      counter.setAttribute('aria-hidden','true');
+      counter.textContent='0';
+      document.body.prepend(counter);
+    }
+
     const coreLoaded=await load(files[0]);
     if(!coreLoaded||typeof init!=='function'){
       console.error('核心脚本不可用');
