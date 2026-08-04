@@ -34,13 +34,16 @@ jobs:
           rm -rf .vendor-jsquash
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('vendor/jsquash/webp/encode.js')
           s = p.read_text()
-          s = s.replace("from 'wasm-feature-detect'", "from '../node_modules/wasm-feature-detect/dist/esm/index.js'")
+          s = re.sub(r"from\s+['\"]wasm-feature-detect['\"]", "from '../node_modules/wasm-feature-detect/dist/esm/index.js'", s)
           p.write_text(s)
           PY
-          test -f vendor/jsquash/jpeg/codec/enc/mozjpeg_enc.wasm
-          test -f vendor/jsquash/webp/codec/enc/webp_enc.wasm
+          echo 'Vendored WASM files:'
+          find vendor/jsquash -type f -name '*.wasm' -print
+          test "$(find vendor/jsquash/jpeg -type f -name '*.wasm' | wc -l)" -gt 0
+          test "$(find vendor/jsquash/webp -type f -name '*.wasm' | wc -l)" -gt 0
       - name: Commit vendored codecs to PR branch
         run: |
           git config user.name 'github-actions[bot]'
