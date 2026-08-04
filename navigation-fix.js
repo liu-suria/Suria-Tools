@@ -56,10 +56,14 @@
 
     const recentMenu=menu();
     if(recentMenu){
-      const hasRecent=recentTools().length>0;
-      recentMenu.classList.toggle('hidden',!homepage||!hasRecent);
-      if(!homepage)recentMenu.classList.remove('open');
+      recentMenu.classList.toggle('hidden',!homepage);
+      if(!homepage)closeRecentMenu();
     }
+  }
+
+  function openRecentMenu(){
+    menu()?.classList.add('open');
+    button()?.setAttribute('aria-expanded','true');
   }
 
   function closeRecentMenu(){
@@ -70,9 +74,7 @@
   function toggleRecentMenu(){
     const recentMenu=menu();
     if(!recentMenu)return;
-    const open=!recentMenu.classList.contains('open');
-    recentMenu.classList.toggle('open',open);
-    button()?.setAttribute('aria-expanded',String(open));
+    recentMenu.classList.contains('open')?closeRecentMenu():openRecentMenu();
   }
 
   function bindRecentMenu(){
@@ -88,9 +90,9 @@
       closeRecentMenu();
       openTool(item.dataset.recentTool);
     };
-    recentMenu.addEventListener('mouseenter',()=>recentMenu.classList.add('open'));
+    recentMenu.addEventListener('mouseenter',openRecentMenu);
     recentMenu.addEventListener('mouseleave',closeRecentMenu);
-    recentMenu.addEventListener('focusin',()=>recentMenu.classList.add('open'));
+    recentMenu.addEventListener('focusin',openRecentMenu);
     recentMenu.addEventListener('focusout',()=>setTimeout(()=>{
       if(!recentMenu.contains(document.activeElement))closeRecentMenu();
     },0));
