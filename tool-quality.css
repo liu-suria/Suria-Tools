@@ -19,3 +19,5 @@
 .quality-table{display:grid;gap:7px}.quality-table>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;align-items:start;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
 .quality-table b{font-size:12px}.quality-table code{overflow-wrap:anywhere;color:var(--text)}.quality-url-output h4{margin:18px 0 9px}
 @media(max-width:720px){.quality-inline{grid-template-columns:1fr}.quality-now{grid-template-columns:1fr auto}.quality-now span{grid-column:1/-1}.quality-color-values{grid-template-columns:1fr}.quality-table>div{grid-template-columns:1fr;gap:4px}}
+.drop-zone>.ux-file-meta{display:none}
+.ux-tool-root:has(input[type="file"]) [data-ux-action="download"]{display:none}
