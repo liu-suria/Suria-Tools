@@ -44,6 +44,30 @@
     return !toolId&&!query&&homeVisible;
   }
 
+  function positionRecentPanel(){
+    const btn=button();
+    const box=panel();
+    if(!btn||!box)return;
+    const rect=btn.getBoundingClientRect();
+    const gap=8;
+    box.style.position='fixed';
+    box.style.zIndex='9999';
+    box.style.top=`${Math.round(rect.bottom+gap)}px`;
+
+    if(innerWidth<=840){
+      box.style.left='12px';
+      box.style.right='12px';
+      box.style.width='auto';
+      return;
+    }
+
+    const width=Math.min(320,innerWidth-28);
+    const left=Math.max(14,Math.min(rect.right-width,innerWidth-width-14));
+    box.style.left=`${Math.round(left)}px`;
+    box.style.right='auto';
+    box.style.width=`${width}px`;
+  }
+
   function syncPageMode(){
     const homepage=isHomepage();
     const favoriteSection=document.querySelector('#favoriteSection');
@@ -62,12 +86,20 @@
   }
 
   function openRecentMenu(){
-    menu()?.classList.add('open');
+    const recentMenu=menu();
+    const box=panel();
+    if(!recentMenu||!box||!isHomepage())return;
+    positionRecentPanel();
+    box.style.display='block';
+    recentMenu.classList.add('open');
     button()?.setAttribute('aria-expanded','true');
   }
 
   function closeRecentMenu(){
-    menu()?.classList.remove('open');
+    const recentMenu=menu();
+    const box=panel();
+    recentMenu?.classList.remove('open');
+    if(box)box.style.display='none';
     button()?.setAttribute('aria-expanded','false');
   }
 
@@ -83,6 +115,8 @@
     const box=panel();
     if(!recentMenu||!btn||!box||recentMenu.dataset.bound)return;
     recentMenu.dataset.bound='1';
+    box.style.display='none';
+
     btn.onclick=event=>{event.stopPropagation();toggleRecentMenu()};
     box.onclick=event=>{
       const item=event.target.closest('[data-recent-tool]');
@@ -90,15 +124,23 @@
       closeRecentMenu();
       openTool(item.dataset.recentTool);
     };
+
     recentMenu.addEventListener('mouseenter',openRecentMenu);
     recentMenu.addEventListener('mouseleave',closeRecentMenu);
     recentMenu.addEventListener('focusin',openRecentMenu);
     recentMenu.addEventListener('focusout',()=>setTimeout(()=>{
       if(!recentMenu.contains(document.activeElement))closeRecentMenu();
     },0));
+
     document.addEventListener('click',event=>{
       if(!recentMenu.contains(event.target))closeRecentMenu();
     });
+    addEventListener('resize',()=>{
+      if(recentMenu.classList.contains('open'))positionRecentPanel();
+    },{passive:true});
+    addEventListener('scroll',()=>{
+      if(recentMenu.classList.contains('open'))positionRecentPanel();
+    },{passive:true});
   }
 
   renderSaved=function(){
