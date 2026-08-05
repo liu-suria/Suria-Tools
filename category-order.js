@@ -14,7 +14,6 @@
 
   const TOOL_PRIORITY={
     '图片工具':[
-      'image-compress',
       'image-resize',
       'image-convert',
       'base64-image',

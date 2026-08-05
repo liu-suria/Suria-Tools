@@ -8,45 +8,6 @@
 
   function fileDrop(id,multiple=true){return `<label class="drop-zone" for="${id}"><span class="drop-icon">＋</span><strong>选择或拖入图片</strong><small>支持 JPG、PNG、WebP${multiple?'，可多选':''}；全程在浏览器本地处理</small><input id="${id}" type="file" accept="image/*" ${multiple?'multiple':''}></label>`}
 
-  function enhancedImageCompress(root){
-    root.innerHTML=`<div class="image-studio">
-      <section class="studio-panel">${fileDrop('compressFiles')}
-        <div class="control-grid">
-          <label>输出格式<select id="compressType"><option value="auto">保持兼容格式</option><option value="image/jpeg">JPG</option><option value="image/webp">WebP</option><option value="image/png">PNG</option></select></label>
-          <label>压缩质量 <output id="qualityText">82%</output><input id="compressQuality" type="range" min="20" max="100" value="82"></label>
-          <label>最大边长<select id="compressMax"><option value="0">保持原尺寸</option><option value="4096">4096 px</option><option value="2560">2560 px</option><option value="1920" selected>1920 px</option><option value="1280">1280 px</option><option value="800">800 px</option></select></label>
-          <label class="check-row"><input id="keepMetaNote" type="checkbox" checked disabled> 自动移除图片元数据</label>
-        </div>
-        <div class="actions"><button id="startCompress" class="primary">开始压缩</button><button id="clearCompress" class="secondary">清空</button></div>
-      </section>
-      <section class="studio-panel"><div class="studio-heading"><div><h3>处理结果</h3><p id="compressSummary">尚未选择图片</p></div><button id="downloadAllCompress" class="secondary hidden">逐个下载全部</button></div><div id="compressResults" class="result-list empty-state">图片不会上传到服务器</div></section>
-    </div>`;
-    const filesEl=root.querySelector('#compressFiles'),quality=root.querySelector('#compressQuality'),results=root.querySelector('#compressResults'),summary=root.querySelector('#compressSummary'),allBtn=root.querySelector('#downloadAllCompress');
-    let outputs=[];
-    quality.oninput=()=>root.querySelector('#qualityText').textContent=`${quality.value}%`;
-    root.querySelector('#clearCompress').onclick=()=>{filesEl.value='';outputs=[];results.className='result-list empty-state';results.textContent='图片不会上传到服务器';summary.textContent='尚未选择图片';allBtn.classList.add('hidden')};
-    root.querySelector('#startCompress').onclick=async()=>{
-      const files=[...filesEl.files].filter(imageFile);if(!files.length)return toast('请先选择图片');
-      results.className='result-list';results.innerHTML='<div class="processing">正在处理图片…</div>';outputs=[];
-      const q=Number(quality.value)/100,max=Number(root.querySelector('#compressMax').value),chosen=root.querySelector('#compressType').value;
-      let before=0,after=0;
-      for(const [i,file] of files.entries()){
-        try{
-          const img=await loadBitmap(file);let w=img.naturalWidth,h=img.naturalHeight;const scale=max&&Math.max(w,h)>max?max/Math.max(w,h):1;w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));
-          const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{alpha:true});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-          const type=chosen==='auto'?(file.type==='image/png'?'image/png':'image/webp'):chosen;if(type==='image/jpeg'){ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h)}ctx.drawImage(img,0,0,w,h);
-          const blob=await canvasBlob(canvas,type,type==='image/png'?undefined:q);const url=URL.createObjectURL(blob);before+=file.size;after+=blob.size;
-          outputs.push({blob,url,name:`${safeBase(file.name)}-compressed.${extFor(type)}`});
-          results.innerHTML=outputs.map((o,idx)=>{const original=files[idx];const saved=Math.max(0,Math.round((1-o.blob.size/original.size)*100));return `<article class="result-item"><img src="${o.url}" alt=""><div><strong>${esc(original.name)}</strong><small>${img.naturalWidth}×${img.naturalHeight} → ${w}×${h}</small><small>${fmtBytes(original.size)} → ${fmtBytes(o.blob.size)} · 节省 ${saved}%</small></div><button class="secondary" data-download="${idx}">下载</button></article>`}).join('');
-          results.querySelectorAll('[data-download]').forEach(b=>b.onclick=()=>{const o=outputs[Number(b.dataset.download)];download(o.name,o.blob)});
-        }catch(e){console.error(e)}
-      }
-      summary.textContent=`完成 ${outputs.length} 张 · ${fmtBytes(before)} → ${fmtBytes(after)} · 共节省 ${before?Math.max(0,Math.round((1-after/before)*100)):0}%`;
-      allBtn.classList.toggle('hidden',!outputs.length);
-    };
-    allBtn.onclick=()=>outputs.forEach((o,i)=>setTimeout(()=>download(o.name,o.blob),i*180));
-  }
-
   function iconSizeEditor(root){
     const presets=[16,32,48,64,96,128,180,192,256,512];
     root.innerHTML=`<div class="image-studio">
@@ -79,12 +40,12 @@
   }
 
   function enhanceHome(){
-    const hero=document.querySelector('.hero');if(hero&&!hero.querySelector('.hero-actions'))hero.querySelector('div').insertAdjacentHTML('beforeend','<div class="hero-actions"><button class="primary" data-open-feature="image-compress">压缩图片</button><button class="secondary" data-open-feature="icon-size-editor">制作图标</button><button class="secondary" data-focus-search>搜索全部工具</button></div>');
-    document.querySelectorAll('[data-open-feature]').forEach(b=>b.onclick=()=>openTool(b.dataset.openFeature));document.querySelectorAll('[data-focus-search]').forEach(b=>b.onclick=()=>{document.querySelector('#search').focus();document.querySelector('#search').scrollIntoView({behavior:'smooth',block:'center'})});
-    const content=document.querySelector('#homeView .content');if(content&&!document.querySelector('#privacyStrip'))content.insertAdjacentHTML('afterbegin','<section id="privacyStrip" class="privacy-strip"><span>🔒</span><div><strong>本地优先处理</strong><p>图片、文本和编码内容优先只在当前设备中处理，不上传业务数据。</p></div><span>无需登录 · 无服务端存储</span></section>');
+    const hero=document.querySelector('.hero');if(hero&&!hero.querySelector('.hero-actions'))hero.querySelector('div').insertAdjacentHTML('beforeend','<div class="hero-actions"><button class="secondary" data-open-feature="icon-size-editor">制作图标</button><button class="secondary" data-focus-search>搜索全部工具</button></div>');
+    document.querySelectorAll('[data-open-feature]').forEach(b=>b.onclick=()=>openTool(b.dataset.openFeature));
+    document.querySelectorAll('[data-focus-search]').forEach(b=>b.onclick=()=>{document.querySelector('#search').focus();document.querySelector('#search').scrollIntoView({behavior:'smooth',block:'center'})});
+    const content=document.querySelector('#homeView .content');if(content&&!document.querySelector('#privacyStrip'))content.insertAdjacentHTML('afterbegin','<section id="privacyStrip" class="privacy-strip"><span>🔒</span><div><strong>本地优先处理</strong><p>图片、文本和编码内容优先只在当前浏览器处理，不上传业务数据。</p></div><span>无需登录 · 无服务端存储</span></section>');
   }
 
-  const compress=tools.find(t=>t.id==='image-compress');if(compress){compress.name='图片批量压缩';compress.desc='批量调整尺寸与质量，显示压缩前后体积';compress.render=enhancedImageCompress}
   const resize=tools.find(t=>t.id==='image-resize');if(resize){resize.name='图片尺寸调整';resize.desc='按宽高、比例缩放并导出图片'}
   if(!tools.some(t=>t.id==='icon-size-editor'))tools.splice(Math.max(0,tools.findIndex(t=>t.id==='image-resize')+1),0,T('icon-size-editor','图片工具','APP','应用图标生成器','生成 favicon、PWA 与 App 常用尺寸图标','icon favicon app pwa resize crop',iconSizeEditor));
   const oldRenderHome=renderHome;renderHome=function(){oldRenderHome();enhanceHome()};
