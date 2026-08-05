@@ -157,7 +157,7 @@ function addStyle(){
   .pro-image-workbench{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
   .pro-image-workbench .pro-preview-panel{min-width:0}
   .pro-image-workbench .pro-preview-panel>#out{width:100%;height:clamp(260px,42vw,520px);min-height:260px;max-height:520px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-  .pro-image-workbench .pro-preview-panel>#out>img{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}
+  .pro-image-workbench .pro-preview-panel>#out>img{display:block;width:100%;height:100%;min-width:0;min-height:0;object-fit:contain}
   .pro-image-workbench .drop-zone.is-dragover{border-color:var(--accent,#ff6f91);background:rgba(255,111,145,.12);transform:translateY(-1px)}
   .pro-controls{display:flex;flex-direction:column;gap:5px}
   .pro-controls>.pro-section{margin:0;padding:3px 8px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
