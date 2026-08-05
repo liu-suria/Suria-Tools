@@ -111,9 +111,9 @@ async function encodePngTarget(canvas,target,onProgress){
     return midpoint();
   };
   const full=await record(256);
-  if(withinTarget(full.size,target))return{blob:full,label:'PNG 高保真 + OxiPNG',levels:256,fits:true,tolerance:true};
+  if(withinTarget(full.size,target))return{blob:full.blob,label:'PNG 高保真 + OxiPNG',levels:256,fits:true,tolerance:true};
   const minimum=await record(2);
-  if(withinTarget(minimum.size,target))return{blob:minimum,label:'PNG 最低颜色精度 + OxiPNG',levels:2,fits:true,tolerance:true};
+  if(withinTarget(minimum.size,target))return{blob:minimum.blob,label:'PNG 最低颜色精度 + OxiPNG',levels:2,fits:true,tolerance:true};
   let left=2,right=256;
   for(let i=0;i<9;i++){
     const levels=nextProbe(left,right),sample=await record(levels),best=bestOf();
