@@ -23,6 +23,8 @@ async function mozjpegAt(canvas,quality){
   const out=await m.default(data,{quality:Math.max(1,Math.min(100,Math.round(quality))),progressive:true,optimize_coding:true,quant_table:3,trellis_multipass:true,trellis_opt_zero:true,trellis_opt_table:true,trellis_loops:2,auto_subsample:true});
   return new Blob([out],{type:'image/jpeg'});
 }
+const TARGET_TOLERANCE=200*1024;
+const withinTarget=(size,target)=>Math.abs(size-target)<=TARGET_TOLERANCE;
 function suggestBytes(width,height,type,original){
   const mp=Math.max(.1,width*height/1e6);
   let kb;
@@ -54,18 +56,35 @@ async function encodeJpegTarget(canvas,target,onProgress){
     if(cache.has(q))return cache.get(q);
     const b=await mozjpegAt(canvas,q);cache.set(q,b);onProgress?.(`正在试算 JPG 质量 ${q}% · ${fmt(b.size)}`);return b;
   };
-  const high=await at(98);
-  if(high.size<=target)return{blob:high,label:'MozJPEG 98%',quality:98,fits:true};
-  const low=await at(1);
-  if(low.size>target)return{blob:low,label:'MozJPEG 1%（固定尺寸下最小）',quality:1,fits:false};
-  let left=1,right=98,best=low,bestQ=1;
+  const samples=[];
+  const record=async q=>{const b=await at(q);samples.push({q,size:b.size,blob:b});return samples.at(-1)};
+  const bestOf=()=>samples.reduce((best,item)=>!best||Math.abs(item.size-target)<Math.abs(best.size-target)?item:best,null);
+  const nextProbe=(lo,hi)=>{
+    const used=new Set(samples.map(item=>item.q));
+    const midpoint=()=>{for(let distance=0;distance<=hi-lo;distance++){const a=Math.floor((lo+hi)/2)-distance,b=Math.floor((lo+hi)/2)+distance;if(a>lo&&a<hi&&!used.has(a))return a;if(b>lo&&b<hi&&!used.has(b))return b}return Math.max(lo+1,Math.min(hi-1,Math.floor((lo+hi)/2)))};
+    const ordered=samples.slice(-2);
+    if(ordered.length===2){
+      const [a,b]=ordered[0].q<ordered[1].q?ordered:[ordered[1],ordered[0]];
+      if(b.size!==a.size){
+        const predicted=a.q+(target-a.size)*(b.q-a.q)/(b.size-a.size),candidate=Math.round(predicted);
+        if(Number.isFinite(candidate)&&candidate>lo&&candidate<hi&&!used.has(candidate))return candidate;
+      }
+    }
+    return midpoint();
+  };
+  const high=await record(98);
+  if(withinTarget(high.size,target))return{blob:high.blob,label:'MozJPEG 98%',quality:98,fits:true,tolerance:true};
+  const low=await record(1);
+  if(withinTarget(low.size,target))return{blob:low.blob,label:'MozJPEG 1%',quality:1,fits:true,tolerance:true};
+  let left=1,right=98;
   for(let i=0;i<10;i++){
-    const mid=Math.floor((left+right)/2),b=await at(mid);
-    if(b.size<=target){best=b;bestQ=mid;left=mid+1}else right=mid-1;
+    const q=nextProbe(left,right),sample=await record(q),best=bestOf();
+    if(withinTarget(sample.size,target))return{blob:sample.blob,label:`MozJPEG ${q}%`,quality:q,fits:true,tolerance:true};
+    if(sample.size>target)right=Math.min(right-1,q-1);else left=Math.max(left+1,q+1);
+    if(left>=right)break;
   }
-  const candidates=[bestQ-2,bestQ-1,bestQ,bestQ+1,bestQ+2].filter(q=>q>=1&&q<=98);
-  for(const q of candidates){const b=await at(q);if(b.size<=target&&target-b.size<target-best.size){best=b;bestQ=q}}
-  return{blob:best,label:`MozJPEG ${bestQ}%`,quality:bestQ,fits:true};
+  const best=bestOf();
+  return{blob:best.blob,label:`MozJPEG ${best.q}%`,quality:best.q,fits:best.size<=target,tolerance:withinTarget(best.size,target)};
 }
 async function encodePngTarget(canvas,target,onProgress){
   const cache=new Map();
@@ -75,65 +94,152 @@ async function encodePngTarget(canvas,target,onProgress){
     const qc=quantizedCanvas(canvas,levels),raw=await toBlob(qc,'image/png'),optimized=await oxipng(raw,3),b=optimized.size<raw.size?optimized:raw;
     cache.set(levels,b);onProgress?.(`正在试算 PNG ${levels} 级颜色精度 · ${fmt(b.size)}`);return b;
   };
-  const full=await at(256);
-  if(full.size<=target)return{blob:full,label:'PNG 高保真 + OxiPNG',levels:256,fits:true};
-  const minimum=await at(2);
-  if(minimum.size>target)return{blob:minimum,label:'PNG 最低颜色精度（固定尺寸下最小）',levels:2,fits:false};
-  let left=2,right=256,best=minimum,bestLevels=2;
+  const samples=[];
+  const record=async levels=>{const b=await at(levels);samples.push({levels,size:b.size,blob:b});return samples.at(-1)};
+  const bestOf=()=>samples.reduce((best,item)=>!best||Math.abs(item.size-target)<Math.abs(best.size-target)?item:best,null);
+  const nextProbe=(lo,hi)=>{
+    const used=new Set(samples.map(item=>item.levels));
+    const midpoint=()=>{for(let distance=0;distance<=hi-lo;distance++){const a=Math.floor((lo+hi)/2)-distance,b=Math.floor((lo+hi)/2)+distance;if(a>lo&&a<hi&&!used.has(a))return a;if(b>lo&&b<hi&&!used.has(b))return b}return Math.max(lo+1,Math.min(hi-1,Math.floor((lo+hi)/2)))};
+    const ordered=samples.slice(-2);
+    if(ordered.length===2){
+      const [a,b]=ordered[0].levels<ordered[1].levels?ordered:[ordered[1],ordered[0]];
+      if(b.size!==a.size){
+        const predicted=a.levels+(target-a.size)*(b.levels-a.levels)/(b.size-a.size),candidate=Math.round(predicted);
+        if(Number.isFinite(candidate)&&candidate>lo&&candidate<hi&&!used.has(candidate))return candidate;
+      }
+    }
+    return midpoint();
+  };
+  const full=await record(256);
+  if(withinTarget(full.size,target))return{blob:full,label:'PNG 高保真 + OxiPNG',levels:256,fits:true,tolerance:true};
+  const minimum=await record(2);
+  if(withinTarget(minimum.size,target))return{blob:minimum,label:'PNG 最低颜色精度 + OxiPNG',levels:2,fits:true,tolerance:true};
+  let left=2,right=256;
   for(let i=0;i<9;i++){
-    const mid=Math.floor((left+right)/2),b=await at(mid);
-    if(b.size<=target){best=b;bestLevels=mid;left=mid+1}else right=mid-1;
+    const levels=nextProbe(left,right),sample=await record(levels),best=bestOf();
+    if(withinTarget(sample.size,target))return{blob:sample.blob,label:`PNG ${levels} 级颜色精度 + OxiPNG`,levels,fits:true,tolerance:true};
+    if(sample.size>target)right=Math.min(right-1,levels-1);else left=Math.max(left+1,levels+1);
+    if(left>=right)break;
   }
-  for(let n=Math.max(2,bestLevels-6);n<=Math.min(256,bestLevels+6);n++){
-    const b=await at(n);if(b.size<=target&&target-b.size<target-best.size){best=b;bestLevels=n}
-  }
-  return{blob:best,label:`PNG ${bestLevels} 级颜色精度 + OxiPNG`,levels:bestLevels,fits:true};
+  const best=bestOf();
+  return{blob:best.blob,label:`PNG ${best.levels} 级颜色精度 + OxiPNG`,levels:best.levels,fits:best.size<=target,tolerance:withinTarget(best.size,target)};
+}
+async function encodeOriginalQuality(canvas,type){
+  if(type==='image/jpeg')return mozjpegAt(canvas,98);
+  return toBlob(canvas,'image/png');
 }
 function addStyle(){
   if(document.querySelector('#targetWorkbenchStyle'))return;
   const s=document.createElement('style');s.id='targetWorkbenchStyle';s.textContent=`
-  .target-hint{padding:11px 13px;border-radius:12px;background:rgba(255,111,145,.08);font-size:13px;line-height:1.55}
+  .target-hint{padding:0;margin:0;background:transparent;font-size:12px;line-height:1.35;color:var(--muted)}
   .target-status{white-space:pre-line;line-height:1.65}
   .target-result-meta{display:grid;gap:5px;margin-top:10px}
   .target-result-meta strong{font-size:14px}
+  .target-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .target-edit-toggle{margin:0;white-space:nowrap;padding:9px 13px;border:1px solid rgba(255,111,145,.45);border-radius:10px;background:rgba(255,111,145,.12);color:var(--text);font-size:14px;font-weight:700;cursor:pointer}
+  .target-edit-toggle input{width:18px;height:18px;accent-color:#ff6f91}
+  .dimension-control-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}
+  .ratio-inline{align-self:end;display:flex;flex-direction:row!important;align-items:center;gap:6px!important;min-height:40px;white-space:nowrap}
+  .dimension-edit-fields.is-locked>*{filter:grayscale(.35);opacity:.52}
+  .dimension-edit-fields.is-locked .dimension-edit-lock{filter:none;opacity:1}
+  .dimension-edit-fields{position:relative}
+  .dimension-edit-lock{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:10px;border:1px solid rgba(100,116,139,.28);border-radius:9px;background:rgba(241,245,249,.82);color:#0f172a;font-size:13px;font-weight:800;text-align:center;line-height:1.4}
+  .dark .dimension-edit-lock{color:#f8fafc;background:rgba(15,23,42,.58);border-color:rgba(148,163,184,.35)}
+  .dimension-edit-fields.is-editable .dimension-edit-lock{display:none}
+  .target-edit-body{position:relative;margin-top:10px}
+  .target-edit-fields{position:relative}
+  .target-edit-fields.is-locked>*{filter:grayscale(.35);opacity:.52}
+  .target-edit-fields.is-locked .target-edit-lock{filter:none;opacity:1}
+  .target-edit-lock{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:18px;border:1px solid rgba(100,116,139,.28);border-radius:12px;background:rgba(241,245,249,.82);backdrop-filter:blur(1px);color:#0f172a;font-size:15px;font-weight:800;letter-spacing:.01em;text-align:center;line-height:1.5;pointer-events:auto;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+  .dark .target-edit-lock{color:#f8fafc;background:rgba(15,23,42,.58);border-color:rgba(148,163,184,.35)}
+  .target-edit-fields.is-editable .target-edit-lock{display:none}
+  .pro-image-workbench{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
+  .pro-image-workbench .pro-preview-panel{min-width:0}
+  .pro-image-workbench .drop-zone.is-dragover{border-color:var(--accent,#ff6f91);background:rgba(255,111,145,.12);transform:translateY(-1px)}
+  .pro-controls{display:flex;flex-direction:column;gap:5px}
+  .pro-controls>.pro-section{margin:0;padding:3px 8px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+  .pro-controls>.pro-section>h3,.target-section-heading h3{margin:0;font-size:15px;line-height:1.3;letter-spacing:0}
+
+  .pro-controls .control-grid{margin:3px 0 0;gap:7px}
+  .pro-controls .control-grid label{gap:6px;margin:0}
+  .pro-controls .control-grid input,.pro-controls .control-grid select{min-height:40px}
+
+  .dimension-label{position:relative}
+  .dimension-label input{padding-right:34px}
+  .dimension-label::after{content:'px';position:absolute;right:12px;bottom:11px;color:var(--muted);font-size:12px;pointer-events:none}
+  .pro-controls .target-edit-body{margin-top:3px}
+  .pro-controls .target-edit-toggle{font-size:14px}
+  .compact-edit-section{padding-bottom:3px!important}
+  .compact-edit-section .target-edit-body{margin-top:3px}
+  .compact-edit-section .control-grid{margin-top:0}
+  .compact-edit-section .target-edit-lock{font-size:13px;padding:12px}
+  .format-control-grid{grid-template-columns:minmax(0,1fr)}
+  .compress-inline-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px}
+  .compress-inline-row>label{min-width:0;margin:0}
+  .compress-inline-row .inline-fields{align-items:stretch;margin-top:3px}
+  .compress-inline-row .inline-fields input,.compress-inline-row .inline-fields select{height:40px;min-height:40px}
+  .compress-inline-row>.secondary{align-self:end;height:40px;min-height:40px;margin:0;white-space:nowrap}
+  .pro-controls>.actions{margin-top:0;padding-top:0;gap:8px}
+  .pro-controls>.actions .primary{flex:1;min-height:44px;font-size:15px;font-weight:700}
+  .pro-controls>.actions .secondary{min-height:44px}
+  .pro-action-status{margin-top:-7px;color:var(--muted);font-size:12px;text-align:right}
+  .target-stale{color:#b45309;font-weight:600}
+  .dark .target-stale{color:#fbbf24}
   `;document.head.appendChild(s);
 }
 tool.name='专业图片工作台';
-tool.desc='上传后自动推荐目标大小，并尽量将 JPG 或 PNG 压到指定体积';
+tool.desc='调整尺寸、压缩体积并转换图片格式';
 tool.render=root=>{
   addStyle();
-  root.innerHTML=`<div class="pro-image-workbench"><section class="studio-panel">
-    <label class="drop-zone"><span class="drop-icon">＋</span><strong>选择图片</strong><small>上传后自动填写建议体积，可手动修改；结果尽量贴近目标大小</small><input id="f" type="file" accept="image/png,image/jpeg"></label>
-    <div class="pro-section"><h3>尺寸</h3><div class="control-grid"><label>宽度<input id="w" type="number" min="1"></label><label>高度<input id="h" type="number" min="1"></label><label class="check-row"><input id="lock" type="checkbox" checked> 锁定比例</label></div></div>
-    <div class="pro-section"><h3>方向</h3><div class="actions"><button class="secondary" data-r="-90">左转 90°</button><button class="secondary" data-r="90">右转 90°</button><button class="secondary" data-x>水平翻转</button><button class="secondary" data-y>垂直翻转</button></div></div>
-    <div class="pro-section"><h3>格式与目标体积</h3><div class="control-grid"><label>输出格式<select id="type"><option value="same">保持原格式</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select></label><label>期望大小<div class="inline-fields"><input id="target" type="number" min="1"><select id="unit"><option value="1024">KB</option><option value="1048576">MB</option></select></div></label></div><div class="actions"><button id="recommended" class="secondary">恢复建议值</button></div><div id="hint" class="target-hint">上传图片后生成建议值</div></div>
-    <div class="pro-section"><h3>水印</h3><div class="control-grid"><label class="check-row"><input id="wm" type="checkbox"> 启用水印</label><label>文字<input id="text" value="Suria Tools"></label><label>字号<input id="font" type="number" min="8" value="36"></label><label>透明度<input id="alpha" type="range" min="10" max="100" value="75"></label><label>位置<select id="pos"><option value="br">右下</option><option value="bl">左下</option><option value="tr">右上</option><option value="tl">左上</option><option value="center">居中</option></select></label></div></div>
-    <div class="actions"><button id="go" class="primary">按目标大小生成</button><button id="reset" class="secondary">重置参数</button></div>
-  </section><section class="studio-panel"><div class="studio-heading"><div><h3>原图与处理结果</h3><p id="sum">请选择图片</p></div></div><div class="pro-compare"><article><strong>原图</strong><div id="orig" class="pro-preview empty-state">尚未上传</div><small id="om"></small></article><article><strong>处理后</strong><div id="out" class="pro-preview empty-state">生成后可预览</div><div id="rm" class="target-result-meta"></div><button id="dl" class="secondary hidden">下载结果</button></article></div></section></div>`;
-  const q=s=>root.querySelector(s);let file,img,ratio=1,rot=0,fx=1,fy=1,out,name,url,origUrl,recommendedBytes=0;
-  const selectedType=()=>q('#type').value==='same'?mimeOf(file):q('#type').value;
+  root.innerHTML=`<div class="image-studio pro-image-workbench" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:18px;align-items:start">
+  <section class="studio-panel pro-controls">
+    <label class="drop-zone" for="f"><span class="drop-icon">＋</span><strong>选择或拖入图片</strong><small>支持 JPG、PNG、WebP；全程在浏览器本地处理</small><input id="f" type="file" accept="image/*"></label>
+    <div class="pro-section"><div class="target-section-heading"><h3>图片尺寸修改</h3><label class="check-row target-edit-toggle"><input id="editDimension" type="checkbox" checked> 启用编辑</label></div><div class="target-edit-body"><div id="dimensionFields" class="dimension-edit-fields"><div class="control-grid dimension-control-grid"><label class="dimension-label">宽度<input id="w" type="number" min="1"></label><label class="dimension-label">高度<input id="h" type="number" min="1"></label><label class="check-row ratio-inline"><input id="lock" type="checkbox" checked> 锁定比例</label></div><div class="dimension-edit-lock">启用编辑后可修改图片尺寸</div></div></div></div>
+    <div class="pro-section compact-edit-section target-section"><div class="target-section-heading"><h3>图片压缩</h3><label class="check-row target-edit-toggle"><input id="editCompress" type="checkbox" checked> 启用编辑</label></div><div class="target-edit-body"><div id="compressFields" class="target-edit-fields"><div class="compress-inline-row"><label>期望文件大小<div class="inline-fields"><input id="target" type="number" min="1"><select id="unit"><option value="1024">KB</option><option value="1048576">MB</option></select></div></label><button id="recommended" class="secondary">恢复建议值</button></div><div id="hint" class="target-hint"></div><small class="target-policy">压缩结果将控制在目标文件大小 ±200 KB 范围内</small><div class="target-edit-lock">启用编辑后可设置期望文件大小并进行体积压缩</div></div></div></div>
+    <div class="pro-section compact-edit-section target-section"><div class="target-section-heading"><h3>更改格式</h3><label class="check-row target-edit-toggle"><input id="editFormat" type="checkbox"> 启用编辑</label></div><div class="target-edit-body"><div id="formatFields" class="target-edit-fields"><div class="control-grid format-control-grid"><label>输出格式<select id="type"><option value="same">保持原格式</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select></label></div><div class="target-edit-lock">启用编辑后可选择输出格式</div></div></div></div>
+    <div class="actions"><button id="go" class="primary" disabled>开始处理</button><button id="reset" class="secondary">重置参数</button></div><div id="actionStatus" class="pro-action-status">请先选择图片</div>
+  </section><section class="studio-panel pro-preview-panel"><div class="studio-heading"><div><h3>处理后结果</h3><p id="sum">请选择图片</p></div></div><div id="out" class="pro-preview empty-state">生成后可预览</div><div id="rm" class="target-result-meta"></div><button id="dl" class="secondary hidden">下载结果</button></section></div>`;
+  const q=s=>root.querySelector(s);let file,img,ratio=1,out,name,url,recommendedBytes=0,run=0,targetManuallySet=false;
+  const dimensionEditing=()=>q('#editDimension').checked;
+  const compressionEditing=()=>q('#editCompress').checked;
+  const formatEditing=()=>q('#editFormat').checked;
+  const selectedType=()=>formatEditing()&&q('#type').value!=='same'?q('#type').value:mimeOf(file);
+  const syncEditState=()=>{const sync=(toggle,fields,label)=>{fields.classList.toggle('is-editable',toggle.checked);fields.classList.toggle('is-locked',!toggle.checked);toggle.closest('label').setAttribute('aria-label',toggle.checked?'已启用编辑':`启用编辑后可编辑${label}`)};sync(q('#editDimension'),q('#dimensionFields'),'图片尺寸');sync(q('#editCompress'),q('#compressFields'),'图片压缩');sync(q('#editFormat'),q('#formatFields'),'更改格式')};
+  const syncActionState=()=>{const ready=!!img&&!!file;q('#go').disabled=!ready;q('#actionStatus').textContent=ready?'参数已就绪，点击开始处理':'请先选择图片'};
+  const invalidate=()=>{run++;out=null;q('#dl').classList.add('hidden');q('#rm').innerHTML='';if(img){q('#sum').innerHTML='参数已修改 · <span class="target-stale">请重新生成处理结果</span>';}if(q('#out')){q('#out').className='pro-preview empty-state';q('#out').textContent='参数修改后请重新生成';}syncActionState()};
+
   const setTarget=bytes=>{if(bytes>=1048576){q('#unit').value='1048576';q('#target').value=(bytes/1048576).toFixed(2)}else{q('#unit').value='1024';q('#target').value=Math.max(1,Math.round(bytes/1024))}};
-  const updateSuggestion=()=>{if(!file||!img)return;recommendedBytes=suggestBytes(+q('#w').value||img.naturalWidth,+q('#h').value||img.naturalHeight,selectedType(),file.size);setTarget(recommendedBytes);q('#hint').textContent=`建议目标：${fmt(recommendedBytes)}。适合商品主图、详情图等网页加载场景；可按业务需要继续调小。`};
-  const reset=()=>{if(!img)return;q('#w').value=img.naturalWidth;q('#h').value=img.naturalHeight;q('#type').value='same';q('#wm').checked=false;rot=0;fx=fy=1;updateSuggestion()};
-  q('#f').onchange=async()=>{file=q('#f').files[0];if(!file)return;img=await load(file);ratio=img.naturalWidth/img.naturalHeight;reset();if(origUrl)URL.revokeObjectURL(origUrl);origUrl=URL.createObjectURL(file);q('#orig').className='pro-preview';q('#orig').innerHTML=`<img src="${origUrl}" alt="原图">`;q('#om').textContent=`${img.naturalWidth}×${img.naturalHeight} · ${fmt(file.size)} · ${extOf(file).toUpperCase()}`;q('#sum').textContent='已自动填写建议体积，可直接生成或手动修改'};
-  q('#w').oninput=()=>{if(q('#lock').checked)q('#h').value=Math.round((+q('#w').value||1)/ratio)};
-  q('#h').oninput=()=>{if(q('#lock').checked)q('#w').value=Math.round((+q('#h').value||1)*ratio)};
-  q('#type').onchange=updateSuggestion;
-  q('#recommended').onclick=()=>recommendedBytes&&setTarget(recommendedBytes);
-  root.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>rot=(rot+(+b.dataset.r)+360)%360);
-  q('[data-x]').onclick=()=>fx*=-1;q('[data-y]').onclick=()=>fy*=-1;q('#reset').onclick=reset;
+  const updateSuggestion=()=>{if(!file||!img)return;recommendedBytes=suggestBytes(+q('#w').value||img.naturalWidth,+q('#h').value||img.naturalHeight,selectedType(),file.size);if(!targetManuallySet)setTarget(recommendedBytes);q('#hint').textContent=`建议目标：${fmt(recommendedBytes)}。${targetManuallySet?'当前已保留你的手动目标；点击“恢复建议值”可重新跟随尺寸变化。':'修改尺寸或格式后会自动更新期望文件大小。'}`};
+  const reset=()=>{if(!img)return;targetManuallySet=false;q('#w').value=img.naturalWidth;q('#h').value=img.naturalHeight;q('#type').value='same';updateSuggestion()};
+  q('#f').onchange=async()=>{file=q('#f').files[0];if(!file){img=null;syncActionState();return}try{img=await load(file);ratio=img.naturalWidth/img.naturalHeight;reset();q('#sum').textContent='图片已载入，可开始处理';syncActionState()}catch(error){img=null;q('#sum').textContent=error.message;syncActionState()}};
+  q('#w').oninput=()=>{if(q('#lock').checked)q('#h').value=Math.round((+q('#w').value||1)/ratio);updateSuggestion();invalidate()};
+  q('#h').oninput=()=>{if(q('#lock').checked)q('#w').value=Math.round((+q('#h').value||1)*ratio);updateSuggestion();invalidate()};
+  syncEditState();
+  syncActionState();
+  q('#editDimension').onchange=()=>{syncEditState();invalidate()};
+  q('#editCompress').onchange=()=>{syncEditState();if(compressionEditing())updateSuggestion();invalidate()};
+  q('#editFormat').onchange=()=>{syncEditState();updateSuggestion();invalidate()};
+  q('#type').onchange=()=>{invalidate();updateSuggestion()};
+  q('#target').oninput=()=>{targetManuallySet=true;invalidate()};q('#unit').onchange=()=>{targetManuallySet=true;invalidate()};
+  q('#recommended').onclick=()=>{if(recommendedBytes){targetManuallySet=false;setTarget(recommendedBytes);updateSuggestion();invalidate()}};
+  q('#reset').onclick=()=>{reset();invalidate()};
+  const drop=q('.drop-zone');['dragenter','dragover'].forEach(type=>drop.addEventListener(type,e=>{e.preventDefault();drop.classList.add('is-dragover')}));['dragleave','drop'].forEach(type=>drop.addEventListener(type,e=>{e.preventDefault();drop.classList.remove('is-dragover') }));drop.addEventListener('drop',e=>{const dropped=[...e.dataTransfer.files].find(f=>/^image\/(png|jpeg)$/.test(f.type));if(!dropped)return toast('请拖入 JPG 或 PNG 图片');const dt=new DataTransfer();dt.items.add(dropped);q('#f').files=dt.files;q('#f').dispatchEvent(new Event('change',{bubbles:true}))});
   q('#go').onclick=async()=>{
     if(!img||!file)return toast('请选择图片');
-    const w=+q('#w').value||img.naturalWidth,h=+q('#h').value||img.naturalHeight,swap=rot===90||rot===270,c=cv(swap?h:w,swap?w:h),x=c.getContext('2d');
-    x.save();x.translate(c.width/2,c.height/2);x.scale(fx,fy);x.rotate(rot*Math.PI/180);x.drawImage(img,-w/2,-h/2,w,h);x.restore();
-    if(q('#wm').checked){const s=+q('#font').value||36,a=(+q('#alpha').value||75)/100,p=q('#pos').value,pad=24;x.font=`${s}px sans-serif`;x.fillStyle=`rgba(255,255,255,${a})`;x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=Math.max(1,s/14);x.textBaseline='middle';let px=c.width-pad,py=c.height-pad;x.textAlign='right';if(p==='bl'){px=pad;x.textAlign='left'}if(p==='tr')py=pad;if(p==='tl'){px=pad;py=pad;x.textAlign='left'}if(p==='center'){px=c.width/2;py=c.height/2;x.textAlign='center'}x.strokeText(q('#text').value,px,py);x.fillText(q('#text').value,px,py)}
+    const w=+q('#w').value||img.naturalWidth,h=+q('#h').value||img.naturalHeight,c=cv(w,h),x=c.getContext('2d');
+    x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(img,0,0,w,h);
     const type=selectedType(),target=Math.max(1024,(+q('#target').value||1)*(+q('#unit').value||1024));
-    q('#out').className='pro-preview';q('#out').textContent='正在根据目标体积试算…';q('#rm').innerHTML='';q('#go').disabled=true;
+    const current=++run;
+    const compress=compressionEditing();
+    q('#out').className='pro-preview';q('#out').textContent=compress?'正在根据目标体积试算…':'正在生成高质量结果…';q('#rm').innerHTML='';q('#go').disabled=true;q('#dl').classList.add('hidden');
     try{
-      const result=type==='image/jpeg'?await encodeJpegTarget(c,target,msg=>q('#out').textContent=msg):await encodePngTarget(c,target,msg=>q('#out').textContent=msg);
+      const result=compress
+        ?(type==='image/jpeg'?await encodeJpegTarget(c,target,msg=>q('#out').textContent=msg):await encodePngTarget(c,target,msg=>q('#out').textContent=msg))
+        :{blob:await encodeOriginalQuality(c,type),label:type==='image/jpeg'?'MozJPEG 98%':'PNG 原始质量',fits:false,tolerance:false};
+      if(current!==run)return;
       out=result.blob;const e=type==='image/jpeg'?'jpg':'png';name=`${safe(file.name)}-target.${q('#type').value==='same'?extOf(file):e}`;
       if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(out);q('#out').innerHTML=`<img src="${url}" alt="处理结果">`;
-      const delta=out.size-target,percent=Math.abs(delta)/target*100,status=result.fits?(percent<=3?'与目标非常接近':out.size<=target?'已达到且未超过目标':'接近目标'):'固定尺寸下无法压到目标';
+      const delta=out.size-target,within=withinTarget(out.size,target),status=!compress?'未启用体积压缩':within?'误差在 200 KB 内，已通过':result.fits?'已达到且未超过目标':'固定尺寸下无法压到目标';
       q('#rm').innerHTML=`<strong>${c.width}×${c.height} · ${fmt(out.size)}</strong><span>目标：${fmt(target)} · 差值：${delta>=0?'+':''}${fmt(Math.abs(delta))}</span><span>${result.label} · ${status}</span>`;
       q('#sum').textContent=`原图 ${fmt(file.size)} → 结果 ${fmt(out.size)} · 减少 ${Math.max(0,Math.round((1-out.size/file.size)*100))}%`;
       q('#dl').classList.remove('hidden');

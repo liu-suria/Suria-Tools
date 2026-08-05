@@ -16,7 +16,7 @@
 .ux-steps li:not(:last-child):after{content:'→';margin-left:2px;color:var(--muted)}
 .ux-steps i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--accent);font-size:11px;font-style:normal;font-weight:800}
 
-.ux-tool-toolbar{position:sticky;top:calc(var(--suria-topbar-height,76px) + 12px);z-index:18;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(14px);box-shadow:0 8px 28px rgba(0,0,0,.05)}
+.ux-tool-toolbar{position:static!important;top:auto!important;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(14px);box-shadow:0 8px 28px rgba(0,0,0,.05)}
 .ux-status{min-width:0;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ux-status.success{color:#17834b}.ux-status.warning{color:#a06300}.ux-status.error{color:var(--danger)}
 .ux-toolbar-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}

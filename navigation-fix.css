@@ -36,8 +36,7 @@ main{margin-left:242px!important;padding-top:var(--suria-topbar-height)!importan
 .recent-menu-item b{font-size:14px}
 .recent-menu-item small{margin-top:4px;color:var(--muted);font-size:11px}
 .recent-menu-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:13px}
-
-.tool-header{top:var(--suria-topbar-height)!important}
+.tool-header{position:static!important;top:auto!important}
 
 @media(max-width:840px){
  :root{--suria-topbar-height:118px}
@@ -55,7 +54,6 @@ main{margin-left:242px!important;padding-top:var(--suria-topbar-height)!importan
  .github-link svg{width:18px;height:18px}
  .recent-menu-button,.install-button{min-height:36px;padding:0 10px;font-size:12px}
  .recent-menu-panel{top:calc(100% + 8px)!important;right:0!important;left:auto!important;width:min(320px,calc(100vw - 24px))!important;max-height:60vh}
- .tool-header{top:var(--suria-topbar-height)!important}
 }
 
 @media(max-width:430px){

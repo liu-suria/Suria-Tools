@@ -86,6 +86,6 @@
 
   const compress=tools.find(t=>t.id==='image-compress');if(compress){compress.name='图片批量压缩';compress.desc='批量调整尺寸与质量，显示压缩前后体积';compress.render=enhancedImageCompress}
   const resize=tools.find(t=>t.id==='image-resize');if(resize){resize.name='图片尺寸调整';resize.desc='按宽高、比例缩放并导出图片'}
-  if(!tools.some(t=>t.id==='icon-size-editor'))tools.splice(Math.max(0,tools.findIndex(t=>t.id==='image-resize')+1),0,T('icon-size-editor','图片工具','APP','图标尺寸编辑','生成 favicon、PWA 与 App 常用尺寸图标','icon favicon app pwa resize crop',iconSizeEditor));
+  if(!tools.some(t=>t.id==='icon-size-editor'))tools.splice(Math.max(0,tools.findIndex(t=>t.id==='image-resize')+1),0,T('icon-size-editor','图片工具','APP','应用图标生成器','生成 favicon、PWA 与 App 常用尺寸图标','icon favicon app pwa resize crop',iconSizeEditor));
   const oldRenderHome=renderHome;renderHome=function(){oldRenderHome();enhanceHome()};
 })();

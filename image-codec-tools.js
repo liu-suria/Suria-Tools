@@ -300,7 +300,7 @@
           const types=chosen==='auto'?(transparency(item.image)?['image/webp']:['image/webp','image/jpeg']):[chosen];
           const candidates=[];
           for(const type of types)candidates.push(await encodeTarget(item.image,item.width,item.height,type,target,message=>{item.status=message;}));
-          item.result=bestCandidate(candidates,target);item.outputUrl=URL.createObjectURL(item.result.blob);item.name=`${safeName(item.file.name)}-compressed.${extension(item.result.type)}`;before+=item.file.size;after+=item.result.blob.size;draw();
+          item.result=bestCandidate(candidates,target);item.outputUrl=URL.createObjectURL(item.result.blob);item.name=`${safeName(item.file.name)}-compressed.${extension(item.result.type)}`;item.fits=item.result.fits;before+=item.file.size;after+=item.result.blob.size;draw();
         }catch(error){item.error=error.message;console.error(error);}
       }
       const completed=items.filter(item=>item.result);const reached=completed.filter(item=>item.result.fits).length;summary.textContent=`完成 ${completed.length} 张 · ${fmt(before)} → ${fmt(after)} · ${reached}/${completed.length} 张达到目标 · 全部保持原尺寸`;all.classList.toggle('hidden',!completed.length);
