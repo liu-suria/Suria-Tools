@@ -88,6 +88,7 @@ async function encodeJpegTarget(canvas,target,onProgress){
 }
 async function encodePngTarget(canvas,target,onProgress){
   const cache=new Map();
+  const ensureBlob=result=>{const blob=result?.blob??result;if(!(blob instanceof Blob))throw new TypeError(`PNG 编码结果不是 Blob: ${Object.prototype.toString.call(blob)}`);return blob};
   const at=async levels=>{
     levels=Math.max(2,Math.min(256,Math.round(levels)));
     if(cache.has(levels))return cache.get(levels);
@@ -111,18 +112,18 @@ async function encodePngTarget(canvas,target,onProgress){
     return midpoint();
   };
   const full=await record(256);
-  if(withinTarget(full.size,target))return{blob:full.blob,label:'PNG 高保真 + OxiPNG',levels:256,fits:true,tolerance:true};
+  if(withinTarget(full.size,target))return{blob:ensureBlob(full),label:'PNG 高保真 + OxiPNG',levels:256,fits:true,tolerance:true};
   const minimum=await record(2);
-  if(withinTarget(minimum.size,target))return{blob:minimum.blob,label:'PNG 最低颜色精度 + OxiPNG',levels:2,fits:true,tolerance:true};
+  if(withinTarget(minimum.size,target))return{blob:ensureBlob(minimum),label:'PNG 最低颜色精度 + OxiPNG',levels:2,fits:true,tolerance:true};
   let left=2,right=256;
   for(let i=0;i<9;i++){
     const levels=nextProbe(left,right),sample=await record(levels),best=bestOf();
-    if(withinTarget(sample.size,target))return{blob:sample.blob,label:`PNG ${levels} 级颜色精度 + OxiPNG`,levels,fits:true,tolerance:true};
+    if(withinTarget(sample.size,target))return{blob:ensureBlob(sample),label:`PNG ${levels} 级颜色精度 + OxiPNG`,levels,fits:true,tolerance:true};
     if(sample.size>target)right=Math.min(right-1,levels-1);else left=Math.max(left+1,levels+1);
     if(left>=right)break;
   }
   const best=bestOf();
-  return{blob:best.blob,label:`PNG ${best.levels} 级颜色精度 + OxiPNG`,levels:best.levels,fits:best.size<=target,tolerance:withinTarget(best.size,target)};
+  return{blob:ensureBlob(best),label:`PNG ${best.levels} 级颜色精度 + OxiPNG`,levels:best.levels,fits:best.size<=target,tolerance:withinTarget(best.size,target)};
 }
 async function encodeOriginalQuality(canvas,type){
   if(type==='image/jpeg')return mozjpegAt(canvas,98);
