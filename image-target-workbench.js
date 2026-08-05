@@ -51,40 +51,20 @@ function quantizedCanvas(source,levels){
 }
 async function encodeJpegTarget(canvas,target,onProgress){
   const cache=new Map();
-  const at=async q=>{
-    q=Math.max(1,Math.min(98,Math.round(q)));
-    if(cache.has(q))return cache.get(q);
-    const b=await mozjpegAt(canvas,q);cache.set(q,b);onProgress?.(`正在试算 JPG 质量 ${q}% · ${fmt(b.size)}`);return b;
-  };
+  const at=async q=>{q=Math.max(1,Math.min(98,Math.round(q)));if(cache.has(q))return cache.get(q);const b=await mozjpegAt(canvas,q);cache.set(q,b);onProgress?.(`正在试算 JPG 质量 ${q}% · ${fmt(b.size)}`);return b};
   const samples=[];
-  const record=async q=>{const b=await at(q);samples.push({q,size:b.size,blob:b});return samples.at(-1)};
-  const bestOf=()=>samples.reduce((best,item)=>!best||Math.abs(item.size-target)<Math.abs(best.size-target)?item:best,null);
-  const nextProbe=(lo,hi)=>{
-    const used=new Set(samples.map(item=>item.q));
-    const midpoint=()=>{for(let distance=0;distance<=hi-lo;distance++){const a=Math.floor((lo+hi)/2)-distance,b=Math.floor((lo+hi)/2)+distance;if(a>lo&&a<hi&&!used.has(a))return a;if(b>lo&&b<hi&&!used.has(b))return b}return Math.max(lo+1,Math.min(hi-1,Math.floor((lo+hi)/2)))};
-    const ordered=samples.slice(-2);
-    if(ordered.length===2){
-      const [a,b]=ordered[0].q<ordered[1].q?ordered:[ordered[1],ordered[0]];
-      if(b.size!==a.size){
-        const predicted=a.q+(target-a.size)*(b.q-a.q)/(b.size-a.size),candidate=Math.round(predicted);
-        if(Number.isFinite(candidate)&&candidate>lo&&candidate<hi&&!used.has(candidate))return candidate;
-      }
-    }
-    return midpoint();
-  };
-  const high=await record(98);
-  if(withinTarget(high.size,target))return{blob:high.blob,label:'MozJPEG 98%',quality:98,fits:true,tolerance:true};
-  const low=await record(1);
-  if(withinTarget(low.size,target))return{blob:low.blob,label:'MozJPEG 1%',quality:1,fits:true,tolerance:true};
-  let left=1,right=98;
-  for(let i=0;i<10;i++){
-    const q=nextProbe(left,right),sample=await record(q),best=bestOf();
-    if(withinTarget(sample.size,target))return{blob:sample.blob,label:`MozJPEG ${q}%`,quality:q,fits:true,tolerance:true};
-    if(sample.size>target)right=Math.min(right-1,q-1);else left=Math.max(left+1,q+1);
-    if(left>=right)break;
+  const record=async q=>{const b=await at(q);const item={q,size:b.size,blob:b};if(!samples.some(x=>x.q===q))samples.push(item);return item};
+  const best=()=>samples.reduce((a,b)=>!a||Math.abs(a.size-target)>Math.abs(b.size-target)?b:a,null);
+  const pass=item=>withinTarget(item.size,target);
+  const probe=async q=>{const item=await record(q);return pass(item)?item:null};
+  let hit=await probe(75);if(hit)return{blob:hit.blob,label:'MozJPEG 75%',quality:75,fits:true,tolerance:true};
+  const high=await record(98);if(pass(high))return{blob:high.blob,label:'MozJPEG 98%',quality:98,fits:true,tolerance:true};
+  const low=await record(1);if(pass(low))return{blob:low.blob,label:'MozJPEG 1%',quality:1,fits:true,tolerance:true};
+  let lo=1,hi=98;
+  for(let i=0;i<6&&lo<hi;i++){
+    const ordered=[...samples].sort((a,b)=>a.q-b.q),a=ordered[0],b=ordered.at(-1);let q=b.size!==a.size?Math.round(a.q+(target-a.size)*(b.q-a.q)/(b.size-a.size)):Math.round((lo+hi)/2);q=Math.max(lo+1,Math.min(hi-1,q));if(samples.some(x=>x.q===q))q=Math.round((lo+hi)/2);const item=await record(q);if(pass(item))return{blob:item.blob,label:`MozJPEG ${q}%`,quality:q,fits:true,tolerance:true};if(item.size>target)hi=q-1;else lo=q+1;
   }
-  const best=bestOf();
-  return{blob:best.blob,label:`MozJPEG ${best.q}%`,quality:best.q,fits:best.size<=target,tolerance:withinTarget(best.size,target)};
+  const item=best();return{blob:item.blob,label:`MozJPEG ${item.q}%`,quality:item.q,fits:item.size<=target,tolerance:withinTarget(item.size,target)};
 }
 async function encodePngTarget(canvas,target,onProgress){
   const cache=new Map();

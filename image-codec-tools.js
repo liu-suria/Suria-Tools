@@ -85,28 +85,18 @@
   }
 
   async function jpegTarget(imageData,target,onProgress){
-    const minimum=0;
-    const maximum=96;
-    let lowBlob=await jpegAt(imageData,minimum);
-    onProgress?.(`MozJPEG 质量 ${minimum}% · ${fmt(lowBlob.size)}`);
-    if(lowBlob.size>target)return {blob:lowBlob,type:'image/jpeg',quality:minimum,codec:'MozJPEG WASM',fits:false};
-
-    let highBlob=await jpegAt(imageData,maximum);
-    onProgress?.(`MozJPEG 质量 ${maximum}% · ${fmt(highBlob.size)}`);
-    if(highBlob.size<=target)return {blob:highBlob,type:'image/jpeg',quality:maximum,codec:'MozJPEG WASM',fits:true};
-
-    let left=minimum;
-    let right=maximum;
-    let best=lowBlob;
-    let bestQuality=minimum;
-    for(let round=0;round<8;round++){
-      const quality=(left+right)/2;
-      const blob=await jpegAt(imageData,quality);
-      onProgress?.(`MozJPEG 质量 ${Math.round(quality)}% · ${fmt(blob.size)}`);
-      if(blob.size<=target){best=blob;bestQuality=quality;left=quality;}else right=quality;
-      if(Math.abs(blob.size-target)/target<.025&&blob.size<=target){best=blob;bestQuality=quality;break;}
+    const cache=new Map();
+    const at=async quality=>{quality=Math.max(1,Math.min(96,Math.round(quality)));if(cache.has(quality))return cache.get(quality);const blob=await jpegAt(imageData,quality);cache.set(quality,blob);onProgress?.(`MozJPEG 质量 ${quality}% · ${fmt(blob.size)}`);return blob};
+    const samples=[];const record=async quality=>{const blob=await at(quality);const item={quality,size:blob.size,blob};if(!samples.some(x=>x.quality===quality))samples.push(item);return item};
+    const pass=item=>Math.abs(item.size-target)<=200*1024;const best=()=>samples.reduce((a,b)=>!a||Math.abs(a.size-target)>Math.abs(b.size-target)?b:a,null);
+    let hit=await record(75);if(pass(hit))return{blob:hit.blob,type:'image/jpeg',quality:75,codec:'MozJPEG WASM',fits:true};
+    const low=await record(1);if(pass(low))return{blob:low.blob,type:'image/jpeg',quality:1,codec:'MozJPEG WASM',fits:true};
+    const high=await record(96);if(pass(high))return{blob:high.blob,type:'image/jpeg',quality:96,codec:'MozJPEG WASM',fits:true};
+    let lo=1,hi=96;
+    for(let round=0;round<6&&lo<hi;round++){
+      const ordered=[...samples].sort((a,b)=>a.quality-b.quality),a=ordered[0],b=ordered.at(-1);let quality=b.size!==a.size?Math.round(a.quality+(target-a.size)*(b.quality-a.quality)/(b.size-a.size)):Math.round((lo+hi)/2);quality=Math.max(lo+1,Math.min(hi-1,quality));if(samples.some(x=>x.quality===quality))quality=Math.round((lo+hi)/2);const item=await record(quality);if(pass(item))return{blob:item.blob,type:'image/jpeg',quality,codec:'MozJPEG WASM',fits:true};if(item.size>target)hi=quality-1;else lo=quality+1;
     }
-    return {blob:best,type:'image/jpeg',quality:bestQuality,codec:'MozJPEG WASM',fits:true};
+    const item=best();return{blob:item.blob,type:'image/jpeg',quality:item.quality,codec:'MozJPEG WASM',fits:item.size<=target};
   }
 
   async function webpAt(imageData,options){
@@ -132,35 +122,18 @@
   }
 
   async function webpTarget(imageData,target,onProgress){
-    let direct=await webpAt(imageData,{target_size:Math.max(1,Math.round(target)),pass:6,quality:75});
-    onProgress?.(`libwebp 目标体积试算 · ${fmt(direct.size)}`);
-    if(direct.size<=target&&direct.size>=target*.72){
-      return {blob:direct,type:'image/webp',quality:null,codec:'libwebp WASM（目标体积模式）',fits:true};
+    const cache=new Map();
+    const at=async quality=>{quality=Math.max(1,Math.min(100,Math.round(quality)));if(cache.has(quality))return cache.get(quality);const blob=await webpAt(imageData,{quality,target_size:0,pass:1});cache.set(quality,blob);onProgress?.(`libwebp 质量 ${quality}% · ${fmt(blob.size)}`);return blob};
+    const samples=[];const record=async quality=>{const blob=await at(quality);const item={quality,size:blob.size,blob};if(!samples.some(x=>x.quality===quality))samples.push(item);return item};
+    const pass=item=>Math.abs(item.size-target)<=200*1024;const best=()=>samples.reduce((a,b)=>!a||Math.abs(a.size-target)>Math.abs(b.size-target)?b:a,null);
+    let hit=await record(70);if(pass(hit))return{blob:hit.blob,type:'image/webp',quality:70,codec:'libwebp WASM',fits:true};
+    const low=await record(1);if(pass(low))return{blob:low.blob,type:'image/webp',quality:1,codec:'libwebp WASM',fits:true};
+    const high=await record(100);if(pass(high))return{blob:high.blob,type:'image/webp',quality:100,codec:'libwebp WASM',fits:true};
+    let lo=1,hi=100;
+    for(let round=0;round<6&&lo<hi;round++){
+      const ordered=[...samples].sort((a,b)=>a.quality-b.quality),a=ordered[0],b=ordered.at(-1);let quality=b.size!==a.size?Math.round(a.quality+(target-a.size)*(b.quality-a.quality)/(b.size-a.size)):Math.round((lo+hi)/2);quality=Math.max(lo+1,Math.min(hi-1,quality));if(samples.some(x=>x.quality===quality))quality=Math.round((lo+hi)/2);const item=await record(quality);if(pass(item))return{blob:item.blob,type:'image/webp',quality,codec:'libwebp WASM',fits:true};if(item.size>target)hi=quality-1;else lo=quality+1;
     }
-
-    const minimum=0;
-    const maximum=100;
-    let lowBlob=await webpAt(imageData,{quality:minimum,target_size:0,pass:1});
-    onProgress?.(`libwebp 质量 ${minimum}% · ${fmt(lowBlob.size)}`);
-    if(lowBlob.size>target){
-      const smallest=direct.size<lowBlob.size?direct:lowBlob;
-      return {blob:smallest,type:'image/webp',quality:smallest===direct?null:minimum,codec:'libwebp WASM',fits:false};
-    }
-    let highBlob=await webpAt(imageData,{quality:maximum,target_size:0,pass:1});
-    if(highBlob.size<=target)return {blob:highBlob,type:'image/webp',quality:maximum,codec:'libwebp WASM',fits:true};
-
-    let left=minimum;
-    let right=maximum;
-    let best=lowBlob;
-    let bestQuality=minimum;
-    for(let round=0;round<7;round++){
-      const quality=(left+right)/2;
-      const blob=await webpAt(imageData,{quality,target_size:0,pass:1});
-      onProgress?.(`libwebp 质量 ${Math.round(quality)}% · ${fmt(blob.size)}`);
-      if(blob.size<=target){best=blob;bestQuality=quality;left=quality;}else right=quality;
-      if(Math.abs(blob.size-target)/target<.025&&blob.size<=target){best=blob;bestQuality=quality;break;}
-    }
-    return {blob:best,type:'image/webp',quality:bestQuality,codec:'libwebp WASM',fits:true};
+    const item=best();return{blob:item.blob,type:'image/webp',quality:item.quality,codec:'libwebp WASM',fits:item.size<=target};
   }
 
   async function encodeTarget(image,width,height,type,target,onProgress){
